@@ -28,6 +28,10 @@ model User {
   aiPrompts        UserAIPrompt[]
   aggTemplates     AggregationTemplate[]
   reviews          ArticleReview[]
+  posts            Post[]
+  postLikes        PostLike[]
+  comments         Comment[]
+  notifications    Notification[]
 }
 
 // Copenhagen Book 準拠のセッションテーブル
@@ -76,6 +80,7 @@ model Article {
   likes     Like[]
   bookmarks Bookmark[]
   reviews   ArticleReview[]
+  comments  Comment[]
 
   @@index([authorId])
   @@index([published, publishedAt])
@@ -180,6 +185,7 @@ model Community {
   invites   CommunityInvite[]
   timelines CommunityTimeline[]
   articles  Article[]
+  posts     Post[]
 }
 
 model CommunityMember {
@@ -219,6 +225,7 @@ model CommunityTimeline {
   createdAt   DateTime @default(now())
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   articles    Article[]
+  posts       Post[]
 
   @@index([communityId])
 }
@@ -285,4 +292,100 @@ model ArticleReview {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([articleId])
+}
+
+// ============================================================
+// SNS 投稿 (Post) — Article (Markdown 長文記事) と別概念。
+// コミュニティタイムラインに流れる Twitter 風の短文投稿。
+// ============================================================
+
+model Post {
+  id          String   @id @default(cuid())
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  // どのコミュニティ／タイムラインに投稿されたか (NULL = グローバル投稿は今は使わない予定)
+  communityId String?
+  community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  timelineId  String?
+  timeline    CommunityTimeline? @relation(fields: [timelineId], references: [id], onDelete: SetNull)
+  // 親投稿 (リプライ用、Phase 後半で使う)
+  parentPostId String?
+  parentPost   Post?    @relation("PostReplies", fields: [parentPostId], references: [id])
+  replies      Post[]   @relation("PostReplies")
+  body        String   // 文字数制限なし。クライアントで 600 字を超えたら fold
+  // member 投稿は owner 承認が要るかどうか (community の運用で決まる)
+  approvalStatus String @default("approved") // "approved" | "pending" | "rejected"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  likes    PostLike[]
+  comments Comment[]
+
+  @@index([communityId])
+  @@index([timelineId])
+  @@index([authorId])
+  @@index([parentPostId])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+// ============================================================
+// コメント (Article + Post 両方に付く)
+// 親→子のみ。孫はインデントせず子と同階層に並ぶ運用 (UI 側で制御)
+// ============================================================
+
+model Comment {
+  id              String   @id @default(cuid())
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id])
+  body            String   // markdown
+  // どちらか一方が入る
+  articleId       String?
+  article         Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  postId          String?
+  post            Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  // 親コメント (返信時)
+  parentCommentId String?
+  parentComment   Comment? @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies         Comment[] @relation("CommentReplies")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([articleId])
+  @@index([postId])
+  @@index([parentCommentId])
+}
+
+// ============================================================
+// 通知
+// ============================================================
+
+model Notification {
+  id          String   @id @default(cuid())
+  // 通知の受信者
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // アクションの主体
+  actorId     String
+  // 種別: like_article | like_post | bookmark_article | follow_user | comment_article | comment_post
+  kind        String
+  // ターゲットの記事 / 投稿 / コメントへのリンク (該当しないものは null)
+  articleId   String?
+  postId      String?
+  commentId   String?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }

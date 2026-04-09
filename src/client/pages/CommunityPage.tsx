@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
-import type { ArticleListItem, CommunityFull } from '../types';
+import type { ArticleListItem, CommunityFull, Post } from '../types';
 import { Avatar } from '../components/Avatar';
+import { PostCard } from '../components/PostCard';
+import { PostComposer } from '../components/PostComposer';
 
 type Tab = 'timeline' | 'members' | 'pending' | 'invite' | 'settings';
 
@@ -14,6 +16,7 @@ export function CommunityPage() {
   const [tab, setTab] = useState<Tab>('timeline');
   const [activeTimelineId, setActiveTimelineId] = useState<string | null>(null);
   const [tlArticles, setTlArticles] = useState<ArticleListItem[]>([]);
+  const [tlPosts, setTlPosts] = useState<Post[]>([]);
   const [pending, setPending] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
   const [newTimelineName, setNewTimelineName] = useState('');
@@ -39,6 +42,7 @@ export function CommunityPage() {
   useEffect(() => {
     if (!activeTimelineId || !c) return;
     api.listTimelineArticles(c.id, activeTimelineId).then(setTlArticles).catch(() => setTlArticles([]));
+    api.listTimelinePosts(activeTimelineId).then(setTlPosts).catch(() => setTlPosts([]));
   }, [activeTimelineId, c]);
 
   useEffect(() => {
@@ -266,34 +270,78 @@ export function CommunityPage() {
                 # {tl.name}
               </button>
             ))}
+            {isOwner && (
+              <button
+                className="btn btn-ghost"
+                title="新しいタイムラインを追加"
+                onClick={() => setTab('settings')}
+              >
+                ＋ チャンネル追加
+              </button>
+            )}
             {isMember && activeTimelineId && (
               <Link
                 to={`/editor?communityId=${c.id}&timelineId=${activeTimelineId}`}
                 className="btn btn-ghost"
-                title="このタイムラインに投稿"
+                title="このタイムラインに長文の記事を書く"
+                style={{ marginLeft: 'auto' }}
               >
-                ＋ 投稿
+                ✎ 記事を書く
               </Link>
             )}
           </div>
-          {tlArticles.length === 0 ? (
+
+          {/* SNS 投稿 composer (メンバーのみ) */}
+          {isMember && activeTimelineId && (
+            <PostComposer
+              communityId={c.id}
+              timelineId={activeTimelineId}
+              onPosted={(p) => setTlPosts((prev) => [p, ...prev])}
+            />
+          )}
+
+          {/* SNS 投稿一覧 */}
+          {tlPosts.length > 0 && (
+            <div className="post-feed">
+              {tlPosts.map((p) => (
+                <PostCard
+                  key={p.id}
+                  post={p}
+                  onChanged={(np) =>
+                    setTlPosts((prev) => prev.map((x) => (x.id === np.id ? np : x)))
+                  }
+                  onDeleted={(id) => setTlPosts((prev) => prev.filter((x) => x.id !== id))}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* 記事 (Markdown 長文) */}
+          {tlArticles.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
+                📚 記事
+              </div>
+              {tlArticles.map((a) => (
+                <Link to={`/articles/${a.id}`} key={a.id} className="article-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div className="article-emoji">{a.emoji || '📝'}</div>
+                  <div className="article-meta">
+                    <div className="article-title">{a.title}</div>
+                    <div className="article-sub">
+                      <span>{a.author?.name}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {tlArticles.length === 0 && tlPosts.length === 0 && (
             <div className="empty">
               {isMember
-                ? 'まだ記事がありません。「＋ 投稿」から最初の記事を書いてみよう。'
-                : 'まだ記事がありません'}
+                ? 'まだ投稿がありません。上のフォームから最初の投稿をしてみよう。'
+                : 'まだ投稿がありません'}
             </div>
-          ) : (
-            tlArticles.map((a) => (
-              <Link to={`/articles/${a.id}`} key={a.id} className="article-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="article-emoji">{a.emoji || '📝'}</div>
-                <div className="article-meta">
-                  <div className="article-title">{a.title}</div>
-                  <div className="article-sub">
-                    <span>{a.author?.name}</span>
-                  </div>
-                </div>
-              </Link>
-            ))
           )}
         </div>
       )}

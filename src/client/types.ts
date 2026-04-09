@@ -78,6 +78,21 @@ export type CommunityTimeline = {
   visibilityAffiliationIds: string;
 };
 
+export type Post = {
+  id: string;
+  body: string;
+  authorId: string;
+  author: { id: string; name: string; avatarUrl: string | null };
+  communityId: string | null;
+  timelineId: string | null;
+  parentPostId: string | null;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  isMine: boolean;
+  createdAt: string;
+};
+
 export type CommunityFull = {
   id: string;
   name: string;

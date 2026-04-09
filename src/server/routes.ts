@@ -9,6 +9,7 @@ import { affiliationRoutes } from './routes-affiliations';
 import { communityRoutes } from './routes-communities';
 import { aiRoutes } from './routes-ai';
 import { aggregationRoutes } from './routes-aggregation';
+import { postRoutes } from './routes-posts';
 
 export const api = new Hono<{ Variables: { user: User | null } }>();
 
@@ -17,6 +18,7 @@ api.route('/affiliations', affiliationRoutes);
 api.route('/communities', communityRoutes);
 api.route('/ai', aiRoutes);
 api.route('/aggregation', aggregationRoutes);
+api.route('/posts', postRoutes);
 
 // ---------- file uploads (画像/GIF) ----------
 

@@ -9,6 +9,7 @@ import type {
   CommunityFull,
   CommunitySummary,
   CommunityTimeline,
+  Post,
   Topic,
   User,
 } from './types';
@@ -194,6 +195,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ note }),
     }),
+
+  // ---------- Post (SNS 投稿) ----------
+  listTimelinePosts: (timelineId: string) =>
+    req<Post[]>(`/posts/timeline/${timelineId}`),
+  createPost: (input: { body: string; communityId: string; timelineId?: string; parentPostId?: string }) =>
+    req<Post>('/posts', { method: 'POST', body: JSON.stringify(input) }),
+  deletePost: (id: string) => req<{ ok: boolean }>(`/posts/${id}`, { method: 'DELETE' }),
+  togglePostLike: (id: string) =>
+    req<{ liked: boolean; count: number }>(`/posts/${id}/like`, { method: 'POST' }),
 
   // ---------- AI ----------
   listAIConfigs: () => req<AIConfig[]>('/ai/configs'),
