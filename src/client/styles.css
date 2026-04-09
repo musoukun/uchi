@@ -236,8 +236,16 @@ a.tag:hover { text-decoration: none; background: #e2e8f0; }
 
 /* ---------- Phase1: Post / Composer (SNS 投稿) ---------- */
 .post-composer { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
-.post-composer textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 72px; }
-.post-composer textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(95,207,220,.18); }
+.post-composer-editor { border: 1px solid var(--border); border-radius: 8px; min-height: 96px; font-size: 14px; transition: border-color .15s, box-shadow .15s; overflow: hidden; }
+.post-composer-editor:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(95,207,220,.18); }
+.post-composer-editor .milkdown { background: transparent; }
+/* Crepe (frame テーマ) のドキュメント風デフォルトを SNS 投稿用に詰める */
+.post-composer-editor .milkdown .ProseMirror { padding: 10px 12px !important; min-height: 76px; font-family: inherit; font-size: 14px; line-height: 1.6; color: var(--text); }
+.post-composer-editor .milkdown .ProseMirror p { margin: 0 0 4px; font-size: 14px; }
+.post-composer-editor .milkdown .ProseMirror h1 { font-size: 18px; margin: 6px 0 4px; }
+.post-composer-editor .milkdown .ProseMirror h2 { font-size: 16px; margin: 6px 0 4px; }
+.post-composer-editor .milkdown .ProseMirror h3 { font-size: 15px; margin: 6px 0 4px; }
+.post-composer-editor .milkdown .ProseMirror ul, .post-composer-editor .milkdown .ProseMirror ol { padding-left: 22px; margin: 4px 0; }
 .post-composer-foot { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .post-composer-hint { color: var(--muted); font-size: 12px; }
 .post-composer-err { color: #b91c1c; font-size: 12px; }
