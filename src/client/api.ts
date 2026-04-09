@@ -10,6 +10,7 @@ import type {
   CommunitySummary,
   CommunityTimeline,
   Comment,
+  Notification,
   Post,
   Topic,
   User,
@@ -205,6 +206,14 @@ export const api = {
   deletePost: (id: string) => req<{ ok: boolean }>(`/posts/${id}`, { method: 'DELETE' }),
   togglePostLike: (id: string) =>
     req<{ liked: boolean; count: number }>(`/posts/${id}/like`, { method: 'POST' }),
+
+  // ---------- Notifications ----------
+  listNotifications: (kind?: 'all' | 'comment') =>
+    req<Notification[]>('/notifications' + (kind && kind !== 'all' ? '?kind=' + kind : '')),
+  notificationUnreadCount: () =>
+    req<{ count: number }>('/notifications/unread-count'),
+  markAllNotificationsRead: () =>
+    req<{ ok: boolean }>('/notifications/mark-all-read', { method: 'POST' }),
 
   // ---------- Comments ----------
   listComments: (params: { articleId?: string; postId?: string }) => {

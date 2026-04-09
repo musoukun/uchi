@@ -78,6 +78,22 @@ export type CommunityTimeline = {
   visibilityAffiliationIds: string;
 };
 
+export type Notification = {
+  id: string;
+  kind:
+    | 'like_article'
+    | 'like_post'
+    | 'bookmark_article'
+    | 'comment_article'
+    | 'comment_post'
+    | 'follow_user';
+  actor: { id: string; name: string; avatarUrl: string | null } | null;
+  article: { id: string; title: string; emoji: string | null } | null;
+  post: { id: string; excerpt: string; communityId: string | null } | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export type Comment = {
   id: string;
   body: string;

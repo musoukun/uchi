@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { User } from '@prisma/client';
 import { prisma } from './db';
 import { requireAuth } from './auth';
+import { notify } from './notify';
 
 export const commentRoutes = new Hono<{ Variables: { user: User | null } }>();
 
@@ -107,6 +108,29 @@ commentRoutes.post('/', requireAuth, async (c) => {
     },
     include: { author: { select: { id: true, name: true, avatarUrl: true } } },
   });
+
+  // 通知: 記事/投稿の著者に + 親コメントの著者にも (自分自身でない場合)
+  if (articleId) {
+    const a = await prisma.article.findUnique({ where: { id: articleId }, select: { authorId: true } });
+    if (a) await notify({ userId: a.authorId, actorId: me.id, kind: 'comment_article', articleId, commentId: created.id });
+  }
+  if (postId) {
+    const p = await prisma.post.findUnique({ where: { id: postId }, select: { authorId: true } });
+    if (p) await notify({ userId: p.authorId, actorId: me.id, kind: 'comment_post', postId, commentId: created.id });
+  }
+  if (parentCommentId) {
+    const parent = await prisma.comment.findUnique({ where: { id: parentCommentId }, select: { authorId: true } });
+    if (parent) {
+      await notify({
+        userId: parent.authorId,
+        actorId: me.id,
+        kind: articleId ? 'comment_article' : 'comment_post',
+        articleId: articleId || null,
+        postId: postId || null,
+        commentId: created.id,
+      });
+    }
+  }
 
   return c.json({
     id: created.id,

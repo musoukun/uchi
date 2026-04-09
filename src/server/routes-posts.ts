@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { User } from '@prisma/client';
 import { prisma } from './db';
 import { requireAuth } from './auth';
+import { notify, unnotify } from './notify';
 
 export const postRoutes = new Hono<{ Variables: { user: User | null } }>();
 
@@ -168,8 +169,10 @@ postRoutes.post('/:id/like', requireAuth, async (c) => {
   });
   if (existing) {
     await prisma.postLike.delete({ where: { id: existing.id } });
+    await unnotify({ userId: p.authorId, actorId: me.id, kind: 'like_post', postId: id });
   } else {
     await prisma.postLike.create({ data: { postId: id, userId: me.id } });
+    await notify({ userId: p.authorId, actorId: me.id, kind: 'like_post', postId: id });
   }
   const count = await prisma.postLike.count({ where: { postId: id } });
   return c.json({ liked: !existing, count });

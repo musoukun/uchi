@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Avatar } from './Avatar';
 import { useMe, setMe } from '../useMe';
 import { api } from '../api';
+import { NotificationBell } from './NotificationBell';
 
 export function Header() {
   const me = useMe();
@@ -66,6 +67,7 @@ export function Header() {
             <NavLink to="/me/settings" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
               ⚙設定
             </NavLink>
+            <NotificationBell />
             <Link to={`/users/${me.id}`}>
               <Avatar user={me} />
             </Link>

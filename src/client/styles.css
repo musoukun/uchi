@@ -335,3 +335,23 @@ a.tag:hover { text-decoration: none; background: #e2e8f0; }
 .ai-review-line-no { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); }
 .ai-review-line-src { font-family: ui-monospace, monospace; font-size: 12px; color: #475569; padding: 2px 0; }
 .ai-review-line-body { font-size: 13px; margin-top: 4px; line-height: 1.5; }
+
+/* ---------- Phase3: Notification Bell ---------- */
+.notif-bell { position: relative; }
+.notif-bell-btn { background: transparent; border: 0; cursor: pointer; padding: 6px 10px; border-radius: 6px; font-size: 18px; position: relative; }
+.notif-bell-btn:hover { background: #f0f4f8; }
+.notif-badge { position: absolute; top: 0; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #ec4899; color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 0 0 2px #fff; }
+
+.notif-panel { position: absolute; top: calc(100% + 8px); right: 0; width: 360px; max-height: 480px; overflow-y: auto; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 40px rgba(15,23,42,.18); z-index: 200; }
+.notif-tabs { display: flex; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: #fff; z-index: 1; }
+.notif-tabs button { flex: 1; padding: 12px; background: transparent; border: 0; border-bottom: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.notif-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); background: #f0fbfc; }
+.notif-loading, .notif-empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+.notif-list { list-style: none; padding: 0; margin: 0; }
+.notif-item { border-bottom: 1px solid var(--border); }
+.notif-item:last-child { border-bottom: 0; }
+.notif-item a { display: flex; gap: 10px; padding: 12px 14px; text-decoration: none; color: var(--text); align-items: flex-start; }
+.notif-item a:hover { background: #f7fbfc; }
+.notif-text { flex: 1; min-width: 0; }
+.notif-line { font-size: 13px; line-height: 1.4; word-break: break-word; }
+.notif-time { font-size: 11px; color: var(--muted); margin-top: 4px; }

@@ -11,6 +11,8 @@ import { aiRoutes } from './routes-ai';
 import { aggregationRoutes } from './routes-aggregation';
 import { postRoutes } from './routes-posts';
 import { commentRoutes } from './routes-comments';
+import { notificationRoutes } from './routes-notifications';
+import { notify, unnotify } from './notify';
 
 export const api = new Hono<{ Variables: { user: User | null } }>();
 
@@ -21,6 +23,7 @@ api.route('/ai', aiRoutes);
 api.route('/aggregation', aggregationRoutes);
 api.route('/posts', postRoutes);
 api.route('/comments', commentRoutes);
+api.route('/notifications', notificationRoutes);
 
 // ---------- file uploads (画像/GIF) ----------
 
@@ -564,8 +567,14 @@ api.post('/articles/:id/like', requireAuth, async (c) => {
   const existing = await prisma.like.findUnique({
     where: { userId_articleId: { userId: me.id, articleId } },
   });
-  if (existing) await prisma.like.delete({ where: { id: existing.id } });
-  else await prisma.like.create({ data: { userId: me.id, articleId } });
+  const article = await prisma.article.findUnique({ where: { id: articleId }, select: { authorId: true } });
+  if (existing) {
+    await prisma.like.delete({ where: { id: existing.id } });
+    if (article) await unnotify({ userId: article.authorId, actorId: me.id, kind: 'like_article', articleId });
+  } else {
+    await prisma.like.create({ data: { userId: me.id, articleId } });
+    if (article) await notify({ userId: article.authorId, actorId: me.id, kind: 'like_article', articleId });
+  }
   const count = await prisma.like.count({ where: { articleId } });
   return c.json({ liked: !existing, count });
 });
@@ -576,8 +585,14 @@ api.post('/articles/:id/bookmark', requireAuth, async (c) => {
   const existing = await prisma.bookmark.findUnique({
     where: { userId_articleId: { userId: me.id, articleId } },
   });
-  if (existing) await prisma.bookmark.delete({ where: { id: existing.id } });
-  else await prisma.bookmark.create({ data: { userId: me.id, articleId } });
+  const article = await prisma.article.findUnique({ where: { id: articleId }, select: { authorId: true } });
+  if (existing) {
+    await prisma.bookmark.delete({ where: { id: existing.id } });
+    if (article) await unnotify({ userId: article.authorId, actorId: me.id, kind: 'bookmark_article', articleId });
+  } else {
+    await prisma.bookmark.create({ data: { userId: me.id, articleId } });
+    if (article) await notify({ userId: article.authorId, actorId: me.id, kind: 'bookmark_article', articleId });
+  }
   const count = await prisma.bookmark.count({ where: { articleId } });
   return c.json({ bookmarked: !existing, count });
 });
@@ -596,9 +611,11 @@ api.post('/follows', requireAuth, async (c) => {
   });
   if (existing) {
     await prisma.follow.delete({ where: { id: existing.id } });
+    if (targetType === 'user') await unnotify({ userId: targetId, actorId: me.id, kind: 'follow_user' });
     return c.json({ following: false });
   } else {
     await prisma.follow.create({ data: { userId: me.id, targetType, targetId } });
+    if (targetType === 'user') await notify({ userId: targetId, actorId: me.id, kind: 'follow_user' });
     return c.json({ following: true });
   }
 });
