@@ -1,0 +1,20 @@
+services:
+  benn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: benn:latest
+    container_name: benn
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "file:/app/data/prod.db"
+      PORT: "3000"
+    volumes:
+      # SQLite ファイルをホストに永続化
+      - benn-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  benn-data:
