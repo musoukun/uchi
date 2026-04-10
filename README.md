@@ -1,4 +1,4 @@
-# Uchi (うち)
+# Uchi
 
 社内に閉じた、Markdown 記事投稿 SNS。
 Notion などの社外 SaaS が利用禁止されている環境でも、Markdown で技術記事を書いて共有できる場所を作るための OSS です。
@@ -9,7 +9,7 @@ Notion などの社外 SaaS が利用禁止されている環境でも、Markdow
 一方で、Zenn のクローンや代替を目指すものではなく、用途は **「社内 wiki + 軽い社内コミュニティ」** に振っており、コミュニティ機能・所属タグ・公開範囲・AI レビューなどは独自に追加しています。
 Zenn のソースコード・デザイン素材・ロゴ・投稿記事は一切含みません。詳しくは末尾「[このプロジェクトと Zenn の関係](#このプロジェクトと-zenn-の関係)」を参照してください。
 
-![demo](http://github.com/musoukun/uchi/blob/main/demo/Custom%20recording%202026-04-10%2009-12-43.mp4)
+![demo](demo/kiji.gif)
 
 
 ## 想定する利用者
