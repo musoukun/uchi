@@ -9,12 +9,12 @@ Notion などの社外 SaaS が利用禁止されている環境でも、Markdow
 一方で、Zenn のクローンや代替を目指すものではなく、用途は **「社内 wiki + 軽い社内コミュニティ」** に振っており、コミュニティ機能・所属タグ・公開範囲・AI レビューなどは独自に追加しています。
 Zenn のソースコード・デザイン素材・ロゴ・投稿記事は一切含みません。詳しくは末尾「[このプロジェクトと Zenn の関係](#このプロジェクトと-zenn-の関係)」を参照してください。
 
-https://github.com/musoukun/uchi/blob/main/demo/Custom%20recording%202026-04-10%2009-12-43.mp4
+![demo](./demo/Custom recording 2026-04-10 09-12-43.mp4)
 
 ## 想定する利用者
 
+- Notion / Confluence / GitHub などの社外サービスが、いろんな理由で遮断されている
 - 社内 Wiki が Markdown 非対応で、コードブロックの色付けすらできない
-- Notion / Confluence / GitHub などの社外サービスが遮断されている
 - 技術ノウハウを共有する場所として、OneNote や旧式の社内 SNS しか選択肢がない
 
 このような環境で、自分のサーバ 1 台で立ち上げて社内に配れる、Markdown ベースの記事投稿 SNS を求めている人を想定しています。
