@@ -4,6 +4,7 @@ import { Avatar } from './Avatar';
 import { ReactionBar } from './ReactionBar';
 import { ReactionPicker } from './ReactionPicker';
 import type { ChatMessage } from '../types';
+import { getRecentEmoji, addRecentEmoji } from '../hooks/useRecentEmoji';
 
 type Props = {
   message: ChatMessage;
@@ -107,10 +108,14 @@ export function ChatMessageItem({ message, grouped, onToggleReaction, onEdit, on
         )}
       </div>
 
-      {/* ホバー時のアクションバー (Discord風) */}
+      {/* ホバー時のアクションバー (Discord風: 最近のリアクション + ピッカー + 編集 + 削除) */}
       {hovered && !editing && (
         <div className="dc-msg-actions">
-          <button title="リアクション" onClick={() => setShowPicker(true)}>😀</button>
+          {getRecentEmoji().map((e) => (
+            <button key={e} title={e} onClick={() => { addRecentEmoji(e); onToggleReaction(message.id, e); }}>{e}</button>
+          ))}
+          <span className="dc-msg-actions-sep" />
+          <button title="リアクションを追加" onClick={() => setShowPicker(true)}>😊</button>
           {onEdit && <button title="編集" onClick={() => { setEditing(true); setEditBody(message.body); }}>✏️</button>}
           {onDelete && <button title="削除" onClick={() => onDelete(message.id)}>🗑️</button>}
         </div>

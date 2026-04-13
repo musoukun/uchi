@@ -850,7 +850,7 @@ textarea.editor-pane:focus { border-color: var(--accent); }
 [data-theme="dark"] .chat-unread-badge { color: var(--bg); }
 
 /* ===== Discord 風レイアウト (ChatRoomPage) ===== */
-.dc-layout { display: flex; flex-direction: column; height: calc(100vh - 56px); }
+.dc-layout { display: flex; flex-direction: column; height: calc(100vh - 56px); overflow: hidden; }
 
 /* トップバー */
 .dc-topbar { display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 48px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--card); }
@@ -913,6 +913,7 @@ textarea.editor-pane:focus { border-color: var(--accent); }
 .dc-msg-actions { position: absolute; top: -12px; right: 16px; display: flex; gap: 2px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 2px; box-shadow: 0 2px 8px rgba(0,0,0,.1); z-index: 5; }
 .dc-msg-actions button { background: none; border: none; cursor: pointer; font-size: .9rem; padding: 4px 6px; border-radius: 3px; color: var(--muted); }
 .dc-msg-actions button:hover { background: rgba(128,128,128,.15); color: var(--text); }
+.dc-msg-actions-sep { width: 1px; background: var(--border); margin: 2px 2px; }
 
 /* タイピング */
 .dc-typing-area { min-height: 20px; padding: 0 16px; }
@@ -944,9 +945,41 @@ textarea.editor-pane:focus { border-color: var(--accent); }
 .reaction-pill.reaction-add { color: var(--muted); font-size: .9rem; padding: 2px 8px; }
 .reaction-picker-popup { position: absolute; z-index: 100; }
 
-/* 設定パネル内メンバー */
-.chat-settings-members { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
-.chat-settings-member { display: flex; align-items: center; gap: 8px; font-size: .9rem; }
+/* ===== チャット設定ページ ===== */
+.chat-settings-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.chat-settings-header h1 { margin: 0; font-size: 1.3rem; }
+.chat-settings-card { padding: 20px; margin-bottom: 16px; }
+.chat-settings-card h2 { margin: 0 0 16px; font-size: 1.1rem; }
+.chat-settings-form { display: flex; flex-direction: column; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: .85rem; font-weight: 600; color: var(--muted); }
+.form-group input, .form-group select { width: 100%; }
+.form-row { display: flex; gap: 12px; }
+.emoji-input { text-align: center; font-size: 1.5rem !important; }
+.chat-settings-section { margin-bottom: 12px; }
+.chat-settings-section-label { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.chat-settings-member { display: flex; align-items: center; gap: 8px; font-size: .9rem; padding: 4px 0; }
+.chat-settings-member-name { flex: 1; }
+.chat-settings-add-member { display: flex; gap: 8px; margin-top: 12px; }
+.chat-settings-add-member input { flex: 1; }
+.chat-settings-danger { border-color: rgba(239, 68, 68, .3); }
+.chat-settings-danger p { font-size: .85rem; color: var(--muted); margin: 0 0 12px; }
+
+/* ユーザー検索付きメンバー追加 */
+.user-search-add { position: relative; margin-top: 12px; }
+.user-search-add input { width: 100%; }
+.user-search-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; padding: 4px 0; box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 20; max-height: 280px; overflow-y: auto; }
+.user-search-candidate { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: none; background: none; cursor: pointer; color: var(--text); font-size: .9rem; text-align: left; }
+.user-search-candidate:hover { background: rgba(128,128,128,.1); }
+.user-search-candidate:disabled { opacity: .5; cursor: wait; }
+.user-search-candidate span { flex: 1; }
+.user-search-add-label { color: var(--accent); font-size: .8rem; font-weight: 600; flex: none !important; }
+
+/* ルーム作成: メンバーチップ */
+.create-room-members { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.create-room-member-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: 12px; background: rgba(128,128,128,.12); font-size: .85rem; }
+.create-room-member-chip button { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1rem; padding: 0 2px; line-height: 1; }
+.create-room-member-chip button:hover { color: var(--text); }
 
 /* btn-sm, btn-ghost, btn-danger */
 .btn-sm { font-size: .8rem; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import EmojiPicker, { type EmojiClickData } from 'emoji-picker-react';
+import { addRecentEmoji } from '../hooks/useRecentEmoji';
 
 type Props = {
   onSelect: (emoji: string) => void;
@@ -21,6 +22,7 @@ export function ReactionPicker({ onSelect, onClose }: Props) {
     <div className="reaction-picker-popup" ref={ref}>
       <EmojiPicker
         onEmojiClick={(data: EmojiClickData) => {
+          addRecentEmoji(data.emoji);
           onSelect(data.emoji);
           onClose();
         }}

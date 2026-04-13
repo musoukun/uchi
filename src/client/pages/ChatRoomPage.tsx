@@ -22,6 +22,12 @@ export function ChatRoomPage() {
 
   useEffect(() => { connectSocket(); }, []);
 
+  // チャット画面ではbodyスクロールを無効化
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const {
     messages, typingUsers, loading, hasMore,
     sendMessage, editMessage, deleteMessage, sendTyping, toggleReaction, loadMore,
