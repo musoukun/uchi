@@ -20,7 +20,6 @@ services:
     image: caddy:2
     container_name: caddy
     ports:
-      - "7634:7634"
       - "7635:7635"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile

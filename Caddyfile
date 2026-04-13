@@ -6,7 +6,3 @@
     tls internal
     reverse_proxy uchi:3000
 }
-
-:7634 {
-    redir https://{host}:7635{uri} permanent
-}
