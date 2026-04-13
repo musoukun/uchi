@@ -426,6 +426,10 @@ export const api = {
     }),
   adminDeleteAffiliation: (id: string) =>
     req<{ ok: boolean }>(`/admin/affiliations/${id}`, { method: 'DELETE' }),
+  adminRetireUser: (id: string) =>
+    req<{ ok: boolean }>(`/admin/users/${id}/retire`, { method: 'POST', body: JSON.stringify({}) }),
+  adminUnretireUser: (id: string) =>
+    req<{ ok: boolean }>(`/admin/users/${id}/unretire`, { method: 'POST', body: JSON.stringify({}) }),
 
   // チャット
   listChatRooms: () => req<ChatRoomSummary[]>('/chat/rooms'),
@@ -444,6 +448,10 @@ export const api = {
     req<{ ok: boolean }>(`/chat/rooms/${roomId}/members`, { method: 'POST', body: JSON.stringify({ userId }) }),
   removeChatRoomMember: (roomId: string, userId: string) =>
     req<{ ok: boolean }>(`/chat/rooms/${roomId}/members/${userId}`, { method: 'DELETE' }),
+  changeChatMemberRole: (roomId: string, userId: string, role: 'owner' | 'member') =>
+    req<{ ok: boolean }>(`/chat/rooms/${roomId}/members/${userId}/role`, {
+      method: 'PATCH', body: JSON.stringify({ role }),
+    }),
   getChatMessages: (roomId: string, before?: string) =>
     req<ChatMessage[]>(`/chat/rooms/${roomId}/messages${before ? `?before=${before}` : ''}`),
   searchChatMessages: (roomId: string, q: string) =>

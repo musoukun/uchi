@@ -81,6 +81,7 @@ authRoutes.post('/login', async (c) => {
     'scrypt$131072$8$1$00000000000000000000000000000000$' + '0'.repeat(128);
   const ok = await verifyPassword(password, user?.passwordHash || dummyHash);
   if (!user || !ok) return c.json({ error: 'メールまたはパスワードが違います' }, 401);
+  if (user.isRetired) return c.json({ error: 'このアカウントは退職済みのためログインできません' }, 403);
 
   const session = await createSession(user.id);
   setSessionCookie(c, session.id, session.expiresAt);
