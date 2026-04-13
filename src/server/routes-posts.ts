@@ -3,6 +3,7 @@ import type { User } from '@prisma/client';
 import { prisma } from './db';
 import { requireAuth } from './auth';
 import { notify, unnotify } from './notify';
+import { canAccessTimeline } from './routes-communities';
 
 export const postRoutes = new Hono<{ Variables: { user: User | null } }>();
 
@@ -30,7 +31,14 @@ postRoutes.post('/', requireAuth, async (c) => {
   let timelineId = input.timelineId || null;
   if (timelineId) {
     const t = await prisma.communityTimeline.findUnique({ where: { id: timelineId } });
-    if (!t || t.communityId !== input.communityId) timelineId = null;
+    if (!t || t.communityId !== input.communityId) {
+      timelineId = null;
+    } else {
+      // 投稿可能なタイムラインか (閲覧権限 = 投稿権限とする)
+      if (!(await canAccessTimeline(t, me))) {
+        return c.json({ error: 'このタイムラインへの投稿権限がありません' }, 403);
+      }
+    }
   }
   if (!timelineId) {
     const home =
@@ -78,13 +86,9 @@ postRoutes.get('/timeline/:timelineId', async (c) => {
   const tl = await prisma.communityTimeline.findUnique({ where: { id: tlId } });
   if (!tl) return c.json({ error: 'not found' }, 404);
 
-  // visibility check
-  if (tl.visibility === 'members_only') {
-    if (!me) return c.json({ error: 'forbidden' }, 403);
-    const m = await prisma.communityMember.findUnique({
-      where: { userId_communityId: { userId: me.id, communityId: tl.communityId } },
-    });
-    if (!m) return c.json({ error: 'forbidden' }, 403);
+  // visibility check (共通ヘルパー)
+  if (!(await canAccessTimeline(tl, me))) {
+    return c.json({ error: 'forbidden' }, 403);
   }
 
   const posts = await prisma.post.findMany({

@@ -228,10 +228,32 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ token }),
     }),
-  createTimeline: (id: string, input: { name: string; visibility?: string; visibilityAffiliationIds?: string[] }) =>
+  createTimeline: (
+    id: string,
+    input: {
+      name: string;
+      visibility?: string;
+      visibilityAffiliationIds?: string[];
+      visibilityUserIds?: string[];
+    }
+  ) =>
     req<CommunityTimeline>(`/communities/${id}/timelines`, {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+  updateTimeline: (
+    id: string,
+    timelineId: string,
+    patch: {
+      name?: string;
+      visibility?: string;
+      visibilityAffiliationIds?: string[];
+      visibilityUserIds?: string[];
+    }
+  ) =>
+    req<CommunityTimeline>(`/communities/${id}/timelines/${timelineId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
     }),
   deleteTimeline: (id: string, timelineId: string) =>
     req<{ ok: boolean }>(`/communities/${id}/timelines/${timelineId}`, { method: 'DELETE' }),

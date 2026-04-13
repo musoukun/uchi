@@ -86,6 +86,102 @@ async function requireMember(communityId: string, userId: string) {
   return m;
 }
 
+// ---- timeline visibility helpers ----------------------------------------
+// タイムラインの可視性を判定する共通ヘルパー。
+// routes-communities / routes-posts の両方から使う。
+export type TimelineRow = {
+  id: string;
+  communityId: string;
+  visibility: string;
+  visibilityAffiliationIds: string;
+  visibilityUserIds: string;
+};
+
+// タイムラインを「閲覧」できるか判定
+//   - コミュニティが非公開系 (private, affiliation_*) で非メンバー → 常に不可
+//   - public タイムライン → 誰でも可 (ただし community の可視性は別途判定)
+//   - members_only → メンバーなら可
+//   - affiliation_in → 指定所属に属するメンバーなら可
+//   - selected_users → 指定ユーザー or owner なら可
+export async function canAccessTimeline(
+  tl: TimelineRow,
+  user: { id: string } | null
+): Promise<boolean> {
+  // 親コミュニティの可視性もチェック
+  const community = await prisma.community.findUnique({
+    where: { id: tl.communityId },
+    select: { visibility: true, visibilityAffiliationIds: true },
+  });
+  if (!community) return false;
+
+  const member = user
+    ? await prisma.communityMember.findUnique({
+        where: { userId_communityId: { userId: user.id, communityId: tl.communityId } },
+      })
+    : null;
+  const myAffIds = user ? await loadMyAffiliationIds(user.id) : new Set<string>();
+
+  // コミュニティ自体が見えないならタイムラインも見えない
+  if (!isCommunityVisibleTo(community, !!member, myAffIds)) return false;
+
+  // タイムライン側の visibility
+  switch (tl.visibility) {
+    case 'public':
+      return true;
+    case 'members_only':
+      return !!member;
+    case 'affiliation_in': {
+      if (!member) return false;
+      const ids = (tl.visibilityAffiliationIds || '').split(',').filter(Boolean);
+      return ids.some((id) => myAffIds.has(id));
+    }
+    case 'selected_users': {
+      if (!member) return false;
+      if (member.role === 'owner') return true;
+      const ids = (tl.visibilityUserIds || '').split(',').filter(Boolean);
+      return ids.includes(user!.id);
+    }
+    default:
+      return !!member;
+  }
+}
+
+// 許容される timeline visibility を community の visibility から決める。
+// 仕様:
+//   - community public   → members_only / selected_users / public / affiliation_in
+//   - community private  → members_only / selected_users (+ admin なら affiliation_in)
+//   - community affiliation_* → 既存同様 (members_only / affiliation_in / selected_users)
+// 不正値は 'members_only' に fallback。
+function normalizeTimelineVisibility(
+  requested: string | undefined,
+  communityVisibility: string
+): 'public' | 'members_only' | 'affiliation_in' | 'selected_users' {
+  const r = requested || 'members_only';
+  if (r === 'public') {
+    // コミュニティが public のときのみ public TL を許可
+    return communityVisibility === 'public' ? 'public' : 'members_only';
+  }
+  if (r === 'selected_users') return 'selected_users';
+  if (r === 'affiliation_in') return 'affiliation_in';
+  return 'members_only';
+}
+
+// selected_users の対象ユーザー ID を、実際にコミュニティメンバーである ID のみに絞って CSV 化
+async function sanitizeTimelineUserIds(
+  communityId: string,
+  input: unknown
+): Promise<string> {
+  if (!Array.isArray(input)) return '';
+  const raw = input.filter((x): x is string => typeof x === 'string' && !!x);
+  if (raw.length === 0) return '';
+  const members = await prisma.communityMember.findMany({
+    where: { communityId, userId: { in: raw } },
+    select: { userId: true },
+  });
+  const ok = new Set(members.map((m) => m.userId));
+  return raw.filter((id) => ok.has(id)).join(',');
+}
+
 // ---------- communities ----------
 
 communityRoutes.get('/', async (c) => {
@@ -506,23 +602,84 @@ communityRoutes.post('/:id/timelines', requireAuth, async (c) => {
   const me = c.get('user')!;
   const id = c.req.param('id');
   await requireOwner(id, me.id);
-  const { name, visibility, visibilityAffiliationIds } = await c.req.json<{
-    name: string;
-    visibility?: string;
-    visibilityAffiliationIds?: string[];
-  }>();
+  const { name, visibility, visibilityAffiliationIds, visibilityUserIds } =
+    await c.req.json<{
+      name: string;
+      visibility?: string;
+      visibilityAffiliationIds?: string[];
+      visibilityUserIds?: string[];
+    }>();
+  const community = await prisma.community.findUnique({ where: { id } });
+  if (!community) return c.json({ error: 'not found' }, 404);
+  const vis = normalizeTimelineVisibility(visibility, community.visibility);
+  const userIdsCsv =
+    vis === 'selected_users'
+      ? await sanitizeTimelineUserIds(id, visibilityUserIds)
+      : '';
   const created = await prisma.communityTimeline.create({
     data: {
       communityId: id,
       name: String(name || 'タイムライン').slice(0, 40),
-      visibility:
-        visibility === 'public' || visibility === 'members_only' || visibility === 'affiliation_in'
-          ? visibility
-          : 'members_only',
-      visibilityAffiliationIds: (visibilityAffiliationIds || []).join(','),
+      visibility: vis,
+      visibilityAffiliationIds:
+        vis === 'affiliation_in' ? (visibilityAffiliationIds || []).join(',') : '',
+      visibilityUserIds: userIdsCsv,
     },
   });
   return c.json(created);
+});
+
+communityRoutes.patch('/:id/timelines/:timelineId', requireAuth, async (c) => {
+  const me = c.get('user')!;
+  const id = c.req.param('id');
+  const tlId = c.req.param('timelineId');
+  await requireOwner(id, me.id);
+  const tl = await prisma.communityTimeline.findUnique({ where: { id: tlId } });
+  if (!tl || tl.communityId !== id) return c.json({ error: 'not found' }, 404);
+  const community = await prisma.community.findUnique({ where: { id } });
+  if (!community) return c.json({ error: 'not found' }, 404);
+  const { name, visibility, visibilityAffiliationIds, visibilityUserIds } =
+    await c.req.json<{
+      name?: string;
+      visibility?: string;
+      visibilityAffiliationIds?: string[];
+      visibilityUserIds?: string[];
+    }>();
+  const patch: {
+    name?: string;
+    visibility?: string;
+    visibilityAffiliationIds?: string;
+    visibilityUserIds?: string;
+  } = {};
+  if (name !== undefined && tl.name !== 'ホーム') {
+    patch.name = String(name).slice(0, 40);
+  }
+  if (visibility !== undefined) {
+    const vis = normalizeTimelineVisibility(visibility, community.visibility);
+    patch.visibility = vis;
+    patch.visibilityAffiliationIds =
+      vis === 'affiliation_in' ? (visibilityAffiliationIds || []).join(',') : '';
+    patch.visibilityUserIds =
+      vis === 'selected_users'
+        ? await sanitizeTimelineUserIds(id, visibilityUserIds)
+        : '';
+  } else {
+    // visibility 変えずに userIds / affiliationIds だけ更新する場合
+    if (visibilityUserIds !== undefined && tl.visibility === 'selected_users') {
+      patch.visibilityUserIds = await sanitizeTimelineUserIds(id, visibilityUserIds);
+    }
+    if (
+      visibilityAffiliationIds !== undefined &&
+      tl.visibility === 'affiliation_in'
+    ) {
+      patch.visibilityAffiliationIds = (visibilityAffiliationIds || []).join(',');
+    }
+  }
+  const updated = await prisma.communityTimeline.update({
+    where: { id: tlId },
+    data: patch,
+  });
+  return c.json(updated);
 });
 
 communityRoutes.delete('/:id/timelines/:timelineId', requireAuth, async (c) => {
@@ -558,20 +715,9 @@ communityRoutes.get('/:id/timelines/:timelineId/articles', async (c) => {
   const tl = await prisma.communityTimeline.findUnique({ where: { id: tlId } });
   if (!tl || tl.communityId !== id) return c.json({ error: 'not found' }, 404);
 
-  // visibility チェック
-  if (tl.visibility === 'members_only') {
-    if (!me) return c.json({ error: 'forbidden' }, 403);
-    const m = await prisma.communityMember.findUnique({
-      where: { userId_communityId: { userId: me.id, communityId: id } },
-    });
-    if (!m) return c.json({ error: 'forbidden' }, 403);
-  } else if (tl.visibility === 'affiliation_in') {
-    if (!me) return c.json({ error: 'forbidden' }, 403);
-    const myAffs = await prisma.userAffiliation.findMany({ where: { userId: me.id } });
-    const allowed = new Set((tl.visibilityAffiliationIds || '').split(',').filter(Boolean));
-    if (!myAffs.some((a) => allowed.has(a.affiliationId))) {
-      return c.json({ error: 'forbidden' }, 403);
-    }
+  // visibility チェック (共通ヘルパーに一本化)
+  if (!(await canAccessTimeline(tl, me))) {
+    return c.json({ error: 'forbidden' }, 403);
   }
 
   // ホーム TL は timelineId 未指定の community 記事も含める (旧データ救済 + 自動振り分け)

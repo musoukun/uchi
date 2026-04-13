@@ -90,12 +90,19 @@ export type CommunityMember = {
   avatarUrl: string | null;
 };
 
+export type TimelineVisibility =
+  | 'public'
+  | 'members_only'
+  | 'affiliation_in'
+  | 'selected_users';
+
 export type CommunityTimeline = {
   id: string;
   communityId: string;
   name: string;
-  visibility: 'public' | 'members_only' | 'affiliation_in';
+  visibility: TimelineVisibility;
   visibilityAffiliationIds: string;
+  visibilityUserIds: string;
 };
 
 export type Notification = {
