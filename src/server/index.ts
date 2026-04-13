@@ -3,6 +3,7 @@ import { logger } from 'hono/logger';
 import { csrf } from 'hono/csrf';
 import { api } from './routes';
 import { authRoutes } from './auth-routes';
+import { adminAuthRoutes } from './admin-auth-routes';
 import { loadUser } from './auth';
 import { startScheduler } from './scheduler';
 
@@ -33,6 +34,7 @@ app.onError((err, c) => {
 
 // 認証関連 (loadUser 不要)
 app.route('/api/auth', authRoutes);
+app.route('/api/admin/auth', adminAuthRoutes);
 
 // API: loadUser でセッションから user を取得して c.var.user に注入
 app.use('/api/*', loadUser);

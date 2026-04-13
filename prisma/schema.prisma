@@ -531,6 +531,42 @@ model CustomEmoji {
   @@index([createdById])
 }
 
+// ============================================================
+// 管理者 (User とは完全分離)
+// ============================================================
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  sessions AdminSession[]
+  invites  AdminInvite[]
+}
+
+model AdminSession {
+  id        String   @id
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+}
+
+model AdminInvite {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  createdById String
+  createdBy   Admin     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+}
+
 model GoogleOAuthToken {
   id              String   @id @default(cuid())
   userId          String   @unique

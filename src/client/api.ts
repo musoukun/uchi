@@ -379,11 +379,40 @@ export const api = {
   // ---------- admin ----------
   adminExists: () => req<{ exists: boolean }>('/admin/exists'),
   adminInit: (input: { email: string; password: string; name?: string }) =>
-    req<User & { promoted?: boolean }>('/admin/init', {
+    req<{ id: string; email: string; name: string }>('/admin/init', {
       method: 'POST',
       body: JSON.stringify(input),
     }),
-  adminMe: () => req<{ isAdmin: boolean }>('/admin/me'),
+  adminLogin: (input: { email: string; password: string }) =>
+    req<{ id: string; email: string; name: string }>('/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  adminLogout: () =>
+    req<{ ok: boolean }>('/admin/auth/logout', { method: 'POST', body: JSON.stringify({}) }),
+  adminMe: () => req<{ id: string; email: string; name: string }>('/admin/me'),
+  adminListAdmins: () =>
+    req<Array<{ id: string; email: string; name: string; createdAt: string }>>('/admin/admins'),
+  // 招待
+  adminCreateInvite: () =>
+    req<{ id: string; token: string; expiresAt: string }>('/admin/invites', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  adminListInvites: () =>
+    req<Array<{
+      id: string; token: string; createdBy: string;
+      acceptedAt: string | null; expiresAt: string; revokedAt: string | null; createdAt: string;
+    }>>('/admin/invites'),
+  adminRevokeInvite: (id: string) =>
+    req<{ ok: boolean }>(`/admin/invites/${id}`, { method: 'DELETE' }),
+  adminValidateInvite: (token: string) =>
+    req<{ valid: boolean }>(`/admin/invites/${token}/validate`),
+  adminAcceptInvite: (token: string, input: { email: string; password: string; name: string }) =>
+    req<{ id: string; email: string; name: string }>(`/admin/invites/${token}/accept`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
   adminListUsers: () =>
     req<
       Array<{

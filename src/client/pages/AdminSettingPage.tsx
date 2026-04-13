@@ -1,54 +1,50 @@
 import React, { useEffect, useState } from 'react';
-import { api, ApiError } from '../api';
+import { Link } from 'react-router-dom';
+import { api } from '../api';
 import type { Affiliation } from '../types';
 import { Avatar } from '../components/Avatar';
-import { useMe } from '../useMe';
 
-// /admin-setting — 管理者専用ページ
-// - 初回: 管理者がまだ存在しなければ「管理者を作成」フォーム
-// - 既存: 管理者ログイン状態ならダッシュボード (ユーザ管理 / コミュニティ管理 / 所属マスタ)
+type AdminUser = { id: string; email: string; name: string; createdAt: string };
+
+// /admin-setting — 管理者専用ページ (管理者セッションで認証)
 export function AdminSettingPage() {
-  const me = useMe();
   const [adminExists, setAdminExists] = useState<boolean | null>(null);
+  const [admin, setAdmin] = useState<AdminUser | null | undefined>(undefined);
 
   useEffect(() => {
     api.adminExists().then((r) => setAdminExists(r.exists)).catch(() => setAdminExists(false));
   }, []);
 
+  useEffect(() => {
+    if (adminExists === null || !adminExists) return;
+    api.adminMe()
+      .then((a) => setAdmin(a as AdminUser))
+      .catch(() => setAdmin(null));
+  }, [adminExists]);
+
   if (adminExists === null) return <div className="container"><div className="loading">読み込み中…</div></div>;
 
-  // 管理者がまだいない → 初回作成フォーム
   if (!adminExists) {
-    return <AdminInitForm onCreated={() => setAdminExists(true)} />;
+    return <AdminInitForm onCreated={() => { setAdminExists(true); window.location.reload(); }} />;
   }
 
-  // 管理者は存在するが、自分は未ログイン or 管理者ではない
-  if (!me) {
+  if (admin === undefined) return <div className="container"><div className="loading">読み込み中…</div></div>;
+
+  if (!admin) {
     return (
       <div className="container">
         <div className="card" style={{ maxWidth: 480, margin: '40px auto', textAlign: 'center' }}>
           <h2>管理者ページ</h2>
           <p style={{ color: 'var(--muted)' }}>
-            管理者は既に作成済みです。ログイン画面からログインしてください。
+            管理者としてログインしてください。
           </p>
-          <a href="/login" className="btn">ログイン画面へ</a>
+          <Link to="/admin/login" className="btn">管理者ログイン</Link>
         </div>
       </div>
     );
   }
-  if (!(me as any).isAdmin) {
-    return (
-      <div className="container">
-        <div className="card" style={{ maxWidth: 480, margin: '40px auto', textAlign: 'center' }}>
-          <h2>管理者ページ</h2>
-          <p style={{ color: 'var(--muted)' }}>
-            このアカウントは管理者ではありません。
-          </p>
-        </div>
-      </div>
-    );
-  }
-  return <AdminDashboard />;
+
+  return <AdminDashboard admin={admin} />;
 }
 
 // ---------- 初回管理者作成 ----------
@@ -67,7 +63,6 @@ function AdminInitForm({ onCreated }: { onCreated: () => void }) {
     try {
       await api.adminInit({ email, password, name });
       onCreated();
-      window.location.href = '/admin-setting';
     } catch (e) {
       setErr(e instanceof Error ? e.message : '失敗しました');
     } finally {
@@ -81,7 +76,6 @@ function AdminInitForm({ onCreated }: { onCreated: () => void }) {
         <h2 style={{ marginTop: 0 }}>管理者アカウントを作成</h2>
         <p style={{ color: 'var(--muted)', fontSize: 14 }}>
           このアプリにはまだ管理者がいません。最初の管理者アカウントを作成してください。
-          ここで作ったアカウントは管理者権限を持ち、所属マスタ・ユーザ削除・プライベートコミュニティ管理ができるようになります。
         </p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label className="profile-editor-label">表示名</label>
@@ -109,7 +103,7 @@ function AdminInitForm({ onCreated }: { onCreated: () => void }) {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          {err && <div style={{ color: '#dc2626', fontSize: 14 }}>{err}</div>}
+          {err && <div className="msg-block alert">{err}</div>}
           <button type="submit" className="btn" disabled={busy}>
             {busy ? '作成中…' : '管理者を作成'}
           </button>
@@ -121,21 +115,159 @@ function AdminInitForm({ onCreated }: { onCreated: () => void }) {
 
 // ---------- ダッシュボード ----------
 
-type Tab = 'users' | 'communities' | 'affiliations';
+type Tab = 'users' | 'admins' | 'communities' | 'affiliations';
 
-function AdminDashboard() {
+function AdminDashboard({ admin }: { admin: AdminUser }) {
   const [tab, setTab] = useState<Tab>('users');
+
+  const logout = async () => {
+    await api.adminLogout().catch(() => {});
+    window.location.href = '/admin/login';
+  };
+
   return (
     <div className="container">
-      <h2 style={{ marginTop: 0 }}>管理者ページ</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ marginTop: 0 }}>管理者ページ</h2>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ color: 'var(--muted)', fontSize: 14 }}>{admin.name} ({admin.email})</span>
+          <button className="btn btn-ghost" onClick={logout}>ログアウト</button>
+        </div>
+      </div>
       <div className="tabs">
         <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>ユーザ管理</button>
+        <button className={tab === 'admins' ? 'active' : ''} onClick={() => setTab('admins')}>管理者</button>
         <button className={tab === 'communities' ? 'active' : ''} onClick={() => setTab('communities')}>プライベートコミュニティ</button>
         <button className={tab === 'affiliations' ? 'active' : ''} onClick={() => setTab('affiliations')}>所属マスタ</button>
       </div>
       {tab === 'users' && <AdminUsersSection />}
+      {tab === 'admins' && <AdminAdminsSection />}
       {tab === 'communities' && <AdminCommunitiesSection />}
       {tab === 'affiliations' && <AdminAffiliationsSection />}
+    </div>
+  );
+}
+
+// ---------- 管理者管理 + 招待 ----------
+
+function AdminAdminsSection() {
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [invites, setInvites] = useState<Array<{
+    id: string; token: string; createdBy: string;
+    acceptedAt: string | null; expiresAt: string; revokedAt: string | null; createdAt: string;
+  }>>([]);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const reload = async () => {
+    const [a, i] = await Promise.all([api.adminListAdmins(), api.adminListInvites()]);
+    setAdmins(a);
+    setInvites(i);
+  };
+  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(null), 3000);
+    return () => clearTimeout(t);
+  }, [msg]);
+
+  const createInvite = async () => {
+    setBusy(true);
+    try {
+      const r = await api.adminCreateInvite();
+      const url = `${window.location.origin}/admin/invite/${r.token}`;
+      await navigator.clipboard.writeText(url);
+      setMsg('招待リンクをクリップボードにコピーしました');
+      reload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '失敗しました');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revokeInvite = async (id: string) => {
+    if (!confirm('この招待を取り消しますか?')) return;
+    try {
+      await api.adminRevokeInvite(id);
+      setMsg('招待を取り消しました');
+      reload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '失敗しました');
+    }
+  };
+
+  const copyInviteUrl = async (token: string) => {
+    const url = `${window.location.origin}/admin/invite/${token}`;
+    await navigator.clipboard.writeText(url);
+    setMsg('リンクをコピーしました');
+  };
+
+  const getStatus = (inv: typeof invites[0]) => {
+    if (inv.revokedAt) return { label: '取消済み', cls: 'badge badge-muted' };
+    if (inv.acceptedAt) return { label: '使用済み', cls: 'badge badge-owner' };
+    if (new Date(inv.expiresAt).getTime() < Date.now()) return { label: '期限切れ', cls: 'badge badge-muted' };
+    return { label: '有効', cls: 'badge badge-member' };
+  };
+
+  return (
+    <div>
+      {msg && <div className="toast" role="status">{msg}</div>}
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <h3 style={{ marginTop: 0 }}>管理者一覧 ({admins.length} 名)</h3>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {admins.map((a) => (
+            <li key={a.id} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700 }}>{a.name}</div>
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>{a.email}</div>
+              </div>
+              <div style={{ color: 'var(--muted)', fontSize: 13 }}>
+                {new Date(a.createdAt).toLocaleDateString()}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>管理者を招待</h3>
+        <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 0 }}>
+          招待リンクを作成し、新しい管理者に共有してください。リンクは7日間有効で、1回のみ使用できます。
+        </p>
+        <button className="btn" disabled={busy} onClick={createInvite} style={{ marginBottom: 16 }}>
+          {busy ? '作成中…' : '招待リンクを作成'}
+        </button>
+
+        {invites.length > 0 && (
+          <>
+            <h4 style={{ marginBottom: 8, fontSize: 14, color: 'var(--muted)' }}>招待履歴</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {invites.map((inv) => {
+                const st = getStatus(inv);
+                const isPending = !inv.revokedAt && !inv.acceptedAt && new Date(inv.expiresAt).getTime() >= Date.now();
+                return (
+                  <li key={inv.id} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)', alignItems: 'center', fontSize: 14 }}>
+                    <span className={st.cls}>{st.label}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: 'var(--muted)' }}>
+                        作成者: {inv.createdBy} / 期限: {new Date(inv.expiresAt).toLocaleString()}
+                      </div>
+                    </div>
+                    {isPending && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-ghost" onClick={() => copyInviteUrl(inv.token)}>コピー</button>
+                        <button className="btn btn-danger" onClick={() => revokeInvite(inv.id)}>取消</button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -150,6 +282,7 @@ function AdminUsersSection() {
       name: string;
       avatarUrl: string | null;
       isAdmin: boolean;
+      isRetired?: boolean;
       createdAt: string;
       affiliations: Array<{ id: string; name: string }>;
     }>
@@ -167,9 +300,7 @@ function AdminUsersSection() {
     setUsers(u);
     setAllAff(a);
   };
-  useEffect(() => {
-    reload();
-  }, []);
+  useEffect(() => { reload(); }, []);
   useEffect(() => {
     if (!msg) return;
     const t = setTimeout(() => setMsg(null), 2500);
@@ -217,6 +348,33 @@ function AdminUsersSection() {
     }
   };
 
+  const retireUser = async (uid: string, name: string) => {
+    if (!confirm(`「${name}」を退職扱いにしますか?`)) return;
+    setBusy(true);
+    try {
+      await api.adminRetireUser(uid);
+      setMsg('退職扱いにしました');
+      reload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '失敗しました');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const unretireUser = async (uid: string) => {
+    setBusy(true);
+    try {
+      await api.adminUnretireUser(uid);
+      setMsg('退職を取り消しました');
+      reload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '失敗しました');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(users.length / pageSize));
   const pageUsers = users.slice((page - 1) * pageSize, page * pageSize);
 
@@ -237,13 +395,14 @@ function AdminUsersSection() {
               padding: '12px 0',
               borderBottom: '1px solid var(--border)',
               alignItems: 'flex-start',
+              opacity: u.isRetired ? 0.5 : 1,
             }}
           >
             <Avatar user={u} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700 }}>
                 {u.name}
-                {u.isAdmin && <span className="badge badge-owner" style={{ marginLeft: 8 }}>管理者</span>}
+                {u.isRetired && <span className="badge badge-muted" style={{ marginLeft: 8 }}>退職</span>}
               </div>
               <div style={{ color: 'var(--muted)', fontSize: 13 }}>{u.email}</div>
               <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -287,6 +446,15 @@ function AdminUsersSection() {
               {editingUserId !== u.id && (
                 <button className="btn btn-ghost" onClick={() => startEdit(u.id)}>
                   所属編集
+                </button>
+              )}
+              {u.isRetired ? (
+                <button className="btn btn-ghost" disabled={busy} onClick={() => unretireUser(u.id)}>
+                  退職取消
+                </button>
+              ) : (
+                <button className="btn btn-ghost" disabled={busy} onClick={() => retireUser(u.id, u.name)}>
+                  退職
                 </button>
               )}
               <button className="btn btn-danger" disabled={busy} onClick={() => deleteUser(u.id, u.name)}>
@@ -339,9 +507,7 @@ function AdminCommunitiesSection() {
     const r = await api.adminListCommunities();
     setList(r.filter((c) => c.visibility === 'private'));
   };
-  useEffect(() => {
-    reload();
-  }, []);
+  useEffect(() => { reload(); }, []);
   useEffect(() => {
     if (!msg) return;
     const t = setTimeout(() => setMsg(null), 2500);
@@ -367,8 +533,7 @@ function AdminCommunitiesSection() {
       {msg && <div className="toast" role="status">{msg}</div>}
       <h3 style={{ marginTop: 0 }}>プライベートコミュニティ ({list.length} 件)</h3>
       <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 0 }}>
-        全てのプライベートコミュニティを一覧します。投稿の中身は管理者でも閲覧できません (プライバシー保護のため)。
-        放置された無人コミュニティの整理などに使ってください。
+        全てのプライベートコミュニティを一覧します。放置された無人コミュニティの整理などに使ってください。
       </p>
       {list.length === 0 ? (
         <p style={{ color: 'var(--muted)' }}>プライベートコミュニティはありません。</p>
@@ -387,14 +552,14 @@ function AdminCommunitiesSection() {
             >
               <Avatar user={{ name: c.name, avatarUrl: c.avatarUrl }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>🔒 {c.name}</div>
+                <div style={{ fontWeight: 700 }}>{c.name}</div>
                 {c.description && (
                   <div style={{ color: 'var(--muted)', fontSize: 14 }}>{c.description}</div>
                 )}
                 <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>
                   {c.memberCount} メンバー
                   {c.ownerCount === 0 && (
-                    <span className="badge badge-no-owner" style={{ marginLeft: 8 }}>👻 代表者なし</span>
+                    <span className="badge badge-muted" style={{ marginLeft: 8 }}>代表者なし</span>
                   )}
                 </div>
               </div>
@@ -434,9 +599,7 @@ function AdminAffiliationsSection() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const reload = () => api.listAffiliations().then(setList);
-  useEffect(() => {
-    reload();
-  }, []);
+  useEffect(() => { reload(); }, []);
   useEffect(() => {
     if (!msg) return;
     const t = setTimeout(() => setMsg(null), 2500);

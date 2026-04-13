@@ -22,6 +22,8 @@ import { AggregatePage } from './pages/AggregatePage';
 import { InvitePage } from './pages/InvitePage';
 import { SearchPage } from './pages/SearchPage';
 import { AdminSettingPage } from './pages/AdminSettingPage';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { AdminInvitePage } from './pages/AdminInvitePage';
 import { ChatRoomsPage } from './pages/ChatRoomsPage';
 import { ChatRoomPage } from './pages/ChatRoomPage';
 import { ChatRoomSettingsPage } from './pages/ChatRoomSettingsPage';
@@ -141,6 +143,8 @@ export function App() {
           }
         />
         <Route path="/admin-setting" element={<AdminSettingPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin/invite/:token" element={<AdminInvitePage />} />
         <Route
           path="/invite/:token"
           element={
