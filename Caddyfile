@@ -1,0 +1,17 @@
+# 社内HTTPS: Caddyが自己署名証明書を自動生成
+# サーバーのIPやホスト名に合わせて変更してください
+#
+# 例1: IPでアクセス  → https://192.168.1.100
+# 例2: ホスト名      → https://uchi-server.local
+#
+# tls internal = 自己署名証明書を自動生成 (Let's Encrypt不要)
+
+:443 {
+    tls internal
+    reverse_proxy uchi:3000
+}
+
+# HTTP → HTTPS リダイレクト
+:80 {
+    redir https://{host}{uri} permanent
+}

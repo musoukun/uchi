@@ -5,16 +5,30 @@ services:
       dockerfile: Dockerfile
     image: uchi:latest
     container_name: uchi
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       DATABASE_URL: "file:/app/data/prod.db"
       PORT: "3000"
+      # Caddy経由のHTTPSなのでsecure=true (デフォルト)
     volumes:
-      # SQLite ファイルをホストに永続化
       - uchi-data:/app/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
     restart: unless-stopped
 
 volumes:
   uchi-data:
+  caddy-data:
+  caddy-config:

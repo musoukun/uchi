@@ -6,11 +6,11 @@ import { createSession, invalidateSession, SESSION_COOKIE } from './session';
 
 export const authRoutes = new Hono();
 
-// Cookie 共通オプション (本番のみ Secure)
-const isProd = process.env.NODE_ENV === 'production';
+// Cookie 共通オプション (COOKIE_SECURE=false で HTTP 環境でも動作可能)
+const secure = process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'false';
 const cookieBase = {
   httpOnly: true,
-  secure: isProd,
+  secure,
   sameSite: 'Lax' as const,
   path: '/',
 };
