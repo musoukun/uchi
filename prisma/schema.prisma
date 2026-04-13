@@ -247,15 +247,12 @@ model CommunityTimeline {
   id          String   @id @default(cuid())
   communityId String
   name        String
-  // "public" | "members_only" | "affiliation_in" | "selected_users"
-  //   public         … 誰でも (※ コミュニティ自体が公開の場合のみ意味を持つ)
-  //   members_only   … コミュニティのメンバー全員
-  //   affiliation_in … 指定の所属に属するメンバーのみ (admin 用途)
-  //   selected_users … visibilityUserIds に列挙されたコミュニティ内ユーザーのみ
-  //                    (※ owner は常にアクセス可)
-  visibility  String   @default("members_only")
-  visibilityAffiliationIds String @default("")
-  // selected_users モードで使う対象ユーザー ID の CSV
+  // "open" | "private"
+  //   open    … コミュニティメンバー全員が閲覧・投稿可能
+  //   private … TLメンバー (visibilityUserIds) + コミュニティ owner のみ
+  visibility  String   @default("open")
+  visibilityAffiliationIds String @default("") // レガシー (未使用)
+  // private TL のメンバー ID (CSV)
   visibilityUserIds        String @default("")
   createdAt   DateTime @default(now())
   community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)

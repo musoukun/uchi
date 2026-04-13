@@ -779,44 +779,24 @@ function TimelineManager({
   onError: (msg: string) => void;
 }) {
   const [newName, setNewName] = useState('');
-  const [newVis, setNewVis] = useState<TimelineVisibility>('members_only');
-  const [newUserIds, setNewUserIds] = useState<string[]>([]);
+  const [newVis, setNewVis] = useState<TimelineVisibility>('open');
+  const [newMemberIds, setNewMemberIds] = useState<string[]>([]);
   const [newSelectedUsers, setNewSelectedUsers] = useState<Array<{ id: string; name: string; avatarUrl: string | null }>>([]);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const isAffiliationBased =
-    community.visibility === 'affiliation_in' ||
-    community.visibility === 'affiliation_out';
-
-  // 選択可能モード — X モデル: public(全体公開) / members_only(鍵) / selected_users(指定ユーザー)
-  const modeOptions: { value: TimelineVisibility; label: string; hint: string }[] = (() => {
-    const base: { value: TimelineVisibility; label: string; hint: string }[] = [
-      {
-        value: 'public',
-        label: '🌐 全体公開',
-        hint: 'フォローしている人のフィードに流れます。コミュニティ外の誰でも閲覧できます',
-      },
-      {
-        value: 'members_only',
-        label: '🔒 メンバーのみ (鍵)',
-        hint: 'コミュニティのメンバーだけが閲覧・投稿できます。フォローしても見れません',
-      },
-      {
-        value: 'selected_users',
-        label: '👥 指定ユーザーのみ (鍵)',
-        hint: '選んだユーザー + 代表だけが閲覧・投稿できます。アプリの全ユーザーから選べます',
-      },
-    ];
-    if (isAffiliationBased) {
-      base.push({
-        value: 'affiliation_in',
-        label: '🏷 所属限定',
-        hint: '指定の所属に属するメンバーのみ',
-      });
-    }
-    return base;
-  })();
+  const modeOptions: { value: TimelineVisibility; label: string; hint: string }[] = [
+    {
+      value: 'open',
+      label: '🔓 オープン',
+      hint: 'コミュニティメンバー全員が閲覧・投稿できます',
+    },
+    {
+      value: 'private',
+      label: '🔒 プライベート',
+      hint: '追加されたメンバー + 代表のみ閲覧・投稿できます',
+    },
+  ];
 
   const addTimeline = async () => {
     if (!newName.trim()) return;
@@ -824,8 +804,8 @@ function TimelineManager({
       onError('「ホーム」は予約語のため使えません');
       return;
     }
-    if (newVis === 'selected_users' && newUserIds.length === 0) {
-      onError('対象ユーザーを 1 人以上選んでください');
+    if (newVis === 'private' && newMemberIds.length === 0) {
+      onError('対象メンバーを 1 人以上選んでください');
       return;
     }
     setSaving(true);
@@ -833,11 +813,11 @@ function TimelineManager({
       await api.createTimeline(community.id, {
         name: newName.trim(),
         visibility: newVis,
-        visibilityUserIds: newVis === 'selected_users' ? newUserIds : undefined,
+        memberIds: newVis === 'private' ? newMemberIds : undefined,
       });
       setNewName('');
-      setNewVis('members_only');
-      setNewUserIds([]);
+      setNewVis('open');
+      setNewMemberIds([]);
       setNewSelectedUsers([]);
       onChanged();
     } catch (e) {
@@ -853,11 +833,9 @@ function TimelineManager({
       <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 12 }}>
         タイムラインはコミュニティ内のチャンネルです。「ホーム」は必ず存在し、削除できません。
         {' '}
-        <strong>🌐 全体公開</strong> はフォロワーのフィードに流れ、誰でも見れます。
+        <strong>🔓 オープン</strong> はメンバー全員が見れます。
         {' '}
-        <strong>🔒 鍵付き</strong> はフォローしても見れません。
-        {' '}
-        <strong>👥 指定ユーザー</strong> はアプリの全ユーザーから選んで限定公開できます (代表は常にアクセス可)。
+        <strong>🔒 プライベート</strong> は追加されたメンバーと代表のみ見れます。
       </div>
 
       {/* 既存タイムライン一覧 */}
@@ -908,7 +886,7 @@ function TimelineManager({
             onChange={(e) => {
               const v = e.target.value as TimelineVisibility;
               setNewVis(v);
-              if (v !== 'selected_users') setNewUserIds([]);
+              if (v !== 'private') { setNewMemberIds([]); setNewSelectedUsers([]); }
             }}
           >
             {modeOptions.map((o) => (
@@ -924,17 +902,17 @@ function TimelineManager({
         <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>
           {modeOptions.find((o) => o.value === newVis)?.hint}
         </div>
-        {newVis === 'selected_users' && (
+        {newVis === 'private' && (
           <div style={{ marginTop: 10 }}>
             <UserSearchPicker
-              selected={newUserIds}
+              selected={newMemberIds}
               selectedUsers={newSelectedUsers}
               onAdd={(u) => {
-                setNewUserIds((prev) => [...prev, u.id]);
+                setNewMemberIds((prev) => [...prev, u.id]);
                 setNewSelectedUsers((prev) => [...prev, u]);
               }}
               onRemove={(id) => {
-                setNewUserIds((prev) => prev.filter((x) => x !== id));
+                setNewMemberIds((prev) => prev.filter((x) => x !== id));
                 setNewSelectedUsers((prev) => prev.filter((x) => x.id !== id));
               }}
             />
@@ -964,57 +942,44 @@ function TimelineRow({
   onChanged: () => void;
   onError: (msg: string) => void;
 }) {
-  const initialUserIds = (timeline.visibilityUserIds || '')
+  const initialMemberIds = (timeline.visibilityUserIds || '')
     .split(',')
     .filter(Boolean);
-  const [vis, setVis] = useState<TimelineVisibility>(timeline.visibility);
-  const [userIds, setUserIds] = useState<string[]>(initialUserIds);
+  const [vis, setVis] = useState<TimelineVisibility>(timeline.visibility as TimelineVisibility);
+  const [memberIds, setMemberIds] = useState<string[]>(initialMemberIds);
   const [selectedUsers, setSelectedUsers] = useState<Array<{ id: string; name: string; avatarUrl: string | null }>>([]);
   const [saving, setSaving] = useState(false);
 
-  // timeline が外から更新されたら state を同期
   useEffect(() => {
-    setVis(timeline.visibility);
-    setUserIds((timeline.visibilityUserIds || '').split(',').filter(Boolean));
+    setVis(timeline.visibility as TimelineVisibility);
+    setMemberIds((timeline.visibilityUserIds || '').split(',').filter(Boolean));
     setSelectedUsers([]);
   }, [timeline.id, timeline.visibility, timeline.visibilityUserIds]);
 
-  // 既存の selected_users の名前を解決
+  // 既存の private TL メンバーの名前を解決
   useEffect(() => {
-    if (timeline.visibility !== 'selected_users' || initialUserIds.length === 0) return;
-    // コミュニティメンバーから名前を引ける分は引く、残りは API で取得
+    if (timeline.visibility !== 'private' || initialMemberIds.length === 0) return;
     const known = community.members
-      .filter((m) => initialUserIds.includes(m.id))
+      .filter((m) => initialMemberIds.includes(m.id))
       .map((m) => ({ id: m.id, name: m.name, avatarUrl: m.avatarUrl }));
-    const unknownIds = initialUserIds.filter((id) => !known.find((k) => k.id === id));
-    if (unknownIds.length === 0) {
-      setSelectedUsers(known);
-    } else {
-      // 不明なユーザーは個別取得
-      Promise.all(unknownIds.map((id) => api.getUser(id).catch(() => null))).then((users) => {
-        const resolved = users
-          .filter((u) => u != null)
-          .map((u) => ({ id: u!.id, name: u!.name, avatarUrl: u!.avatarUrl }));
-        setSelectedUsers([...known, ...resolved]);
-      });
-    }
+    setSelectedUsers(known);
   }, [timeline.id]);
 
   const dirty =
-    vis !== timeline.visibility ||
-    (vis === 'selected_users' &&
-      userIds.slice().sort().join(',') !== initialUserIds.slice().sort().join(','));
+    vis !== (timeline.visibility as TimelineVisibility) ||
+    (vis === 'private' &&
+      memberIds.slice().sort().join(',') !== initialMemberIds.slice().sort().join(','));
 
   const save = async () => {
-    if (vis === 'selected_users' && userIds.length === 0) {
-      onError('対象ユーザーを 1 人以上選んでください');
+    if (vis === 'private' && memberIds.length === 0) {
+      onError('対象メンバーを 1 人以上選んでください');
       return;
     }
     setSaving(true);
     try {
       await api.updateTimeline(community.id, timeline.id, {
         visibility: vis,
-        visibilityUserIds: vis === 'selected_users' ? userIds : undefined,
+        memberIds: vis === 'private' ? memberIds : undefined,
       });
       onChanged();
     } catch (e) {
@@ -1025,7 +990,7 @@ function TimelineRow({
   };
 
   const visLabel =
-    modeOptions.find((o) => o.value === timeline.visibility)?.label ||
+    modeOptions.find((o) => o.value === (timeline.visibility as TimelineVisibility))?.label ||
     timeline.visibility;
 
   return (
@@ -1049,7 +1014,7 @@ function TimelineRow({
               onChange={(e) => {
                 const v = e.target.value as TimelineVisibility;
                 setVis(v);
-                if (v !== 'selected_users') { setUserIds([]); setSelectedUsers([]); }
+                if (v !== 'private') { setMemberIds([]); setSelectedUsers([]); }
               }}
             >
               {modeOptions.map((o) => (
@@ -1065,17 +1030,17 @@ function TimelineRow({
           <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>
             {modeOptions.find((o) => o.value === vis)?.hint}
           </div>
-          {vis === 'selected_users' && (
+          {vis === 'private' && (
             <div style={{ marginTop: 10 }}>
               <UserSearchPicker
-                selected={userIds}
+                selected={memberIds}
                 selectedUsers={selectedUsers}
                 onAdd={(u) => {
-                  setUserIds((prev) => [...prev, u.id]);
+                  setMemberIds((prev) => [...prev, u.id]);
                   setSelectedUsers((prev) => [...prev, u]);
                 }}
                 onRemove={(id) => {
-                  setUserIds((prev) => prev.filter((x) => x !== id));
+                  setMemberIds((prev) => prev.filter((x) => x !== id));
                   setSelectedUsers((prev) => prev.filter((x) => x.id !== id));
                 }}
               />

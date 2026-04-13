@@ -238,9 +238,8 @@ export const api = {
     id: string,
     input: {
       name: string;
-      visibility?: string;
-      visibilityAffiliationIds?: string[];
-      visibilityUserIds?: string[];
+      visibility?: 'open' | 'private';
+      memberIds?: string[];
     }
   ) =>
     req<CommunityTimeline>(`/communities/${id}/timelines`, {
@@ -252,9 +251,8 @@ export const api = {
     timelineId: string,
     patch: {
       name?: string;
-      visibility?: string;
-      visibilityAffiliationIds?: string[];
-      visibilityUserIds?: string[];
+      visibility?: 'open' | 'private';
+      memberIds?: string[];
     }
   ) =>
     req<CommunityTimeline>(`/communities/${id}/timelines/${timelineId}`, {

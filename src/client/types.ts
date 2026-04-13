@@ -91,11 +91,7 @@ export type CommunityMember = {
   avatarUrl: string | null;
 };
 
-export type TimelineVisibility =
-  | 'public'
-  | 'members_only'
-  | 'affiliation_in'
-  | 'selected_users';
+export type TimelineVisibility = 'open' | 'private';
 
 export type CommunityTimeline = {
   id: string;
