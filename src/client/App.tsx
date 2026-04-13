@@ -24,6 +24,7 @@ import { SearchPage } from './pages/SearchPage';
 import { AdminSettingPage } from './pages/AdminSettingPage';
 import { ChatRoomsPage } from './pages/ChatRoomsPage';
 import { ChatRoomPage } from './pages/ChatRoomPage';
+import { ChatRoomSettingsPage } from './pages/ChatRoomSettingsPage';
 
 export function App() {
   return (
@@ -94,6 +95,14 @@ export function App() {
           element={
             <RequireAuth>
               <ChatRoomPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/chat/:id/settings"
+          element={
+            <RequireAuth>
+              <ChatRoomSettingsPage />
             </RequireAuth>
           }
         />

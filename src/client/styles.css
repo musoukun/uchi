@@ -830,10 +830,10 @@ textarea.editor-pane:focus { border-color: var(--accent); }
 .agg-pagination { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 12px 0 4px; border-top: 1px solid var(--border); margin-top: 8px; }
 
 /* ============================================================
-   チャット
+   チャット — Discord 風レイアウト
    ============================================================ */
 
-/* ルーム一覧 */
+/* ルーム一覧 (ChatRoomsPage) */
 .chat-room-list { display: flex; flex-direction: column; gap: 2px; }
 .chat-room-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; text-decoration: none; color: var(--text); transition: background .15s; }
 .chat-room-item:hover { background: rgba(128,128,128,.08); }
@@ -849,70 +849,99 @@ textarea.editor-pane:focus { border-color: var(--accent); }
 .chat-unread-badge { background: var(--accent); color: #fff; font-size: .75rem; font-weight: 700; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
 [data-theme="dark"] .chat-unread-badge { color: var(--bg); }
 
-/* チャットページ全体 */
-.chat-page { display: flex; flex-direction: column; height: calc(100vh - 56px); max-width: 900px; margin: 0 auto; }
+/* ===== Discord 風レイアウト (ChatRoomPage) ===== */
+.dc-layout { display: flex; flex-direction: column; height: calc(100vh - 56px); }
 
-/* チャットヘッダー */
-.chat-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.chat-back { text-decoration: none; color: var(--muted); font-size: .9rem; }
-.chat-header-icon { font-size: 1.5rem; }
-.chat-header-info h2 { margin: 0; font-size: 1.1rem; }
-.chat-header-meta { font-size: .8rem; color: var(--muted); }
-.chat-header-actions { margin-left: auto; display: flex; gap: 8px; }
+/* トップバー */
+.dc-topbar { display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 48px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--card); }
+.dc-topbar-back { text-decoration: none; color: var(--muted); font-size: 1.1rem; padding: 4px 8px; border-radius: 4px; }
+.dc-topbar-back:hover { background: rgba(128,128,128,.1); }
+.dc-topbar-hash { font-size: 1.2rem; font-weight: 700; color: var(--muted); }
+.dc-topbar-name { font-weight: 600; font-size: 1rem; }
+.dc-topbar-divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+.dc-topbar-desc { font-size: .85rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.dc-topbar-right { margin-left: auto; display: flex; gap: 4px; }
+.dc-topbar-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 6px 8px; border-radius: 4px; color: var(--muted); }
+.dc-topbar-btn:hover { background: rgba(128,128,128,.1); color: var(--text); }
+.dc-topbar-btn.active { color: var(--text); }
 
-/* メッセージ一覧 */
-.chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
-.chat-loading { text-align: center; color: var(--muted); }
-.chat-load-more { align-self: center; margin-bottom: 12px; }
+/* メイン: メッセージ + サイドバー */
+.dc-main { display: flex; flex: 1; overflow: hidden; }
+.dc-center { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+/* メッセージスクロール */
+.dc-messages { flex: 1; overflow-y: auto; padding: 16px 0 8px; }
+.dc-loading { text-align: center; color: var(--muted); padding: 16px; }
+.dc-load-more { display: block; margin: 0 auto 12px; font-size: .8rem; color: var(--accent); background: none; border: none; cursor: pointer; }
+.dc-load-more:hover { text-decoration: underline; }
+
+/* 日付区切り */
+.dc-date-sep { display: flex; align-items: center; gap: 8px; padding: 8px 16px; margin: 8px 0; }
+.dc-date-sep::before, .dc-date-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.dc-date-sep span { font-size: .75rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
 
 /* システムメッセージ */
-.chat-msg-system { text-align: center; font-size: .8rem; color: var(--muted); padding: 4px 0; }
+.dc-msg-system { text-align: center; font-size: .8rem; color: var(--muted); padding: 4px 16px; }
 
-/* メッセージ */
-.chat-msg { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; }
-.chat-msg.mine { flex-direction: row-reverse; }
-.chat-msg-avatar { flex-shrink: 0; text-decoration: none; }
-.chat-msg-content { max-width: 70%; }
-.chat-msg.mine .chat-msg-content { align-items: flex-end; }
-.chat-msg-author { font-size: .8rem; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
-.chat-msg-bubble { position: relative; background: rgba(128,128,128,.1); border-radius: 12px; padding: 8px 12px; word-break: break-word; white-space: pre-wrap; line-height: 1.5; }
-.chat-msg.mine .chat-msg-bubble { background: rgba(95,207,220,.15); }
-[data-theme="dark"] .chat-msg.mine .chat-msg-bubble { background: rgba(95,207,220,.1); }
-.chat-msg-text { font-size: .95rem; }
-.chat-msg-edited { font-size: .7rem; color: var(--muted); margin-left: 4px; }
-.chat-msg-meta { display: flex; gap: 8px; margin-top: 2px; }
-.chat-msg-time { font-size: .7rem; color: var(--muted); }
+/* ===== メッセージ行 (Discord風) ===== */
+.dc-msg { position: relative; display: flex; padding: 2px 48px 2px 16px; }
+.dc-msg:hover { background: rgba(128,128,128,.04); }
 
-/* メッセージ三点メニュー */
-.chat-msg-menu-btn { position: absolute; top: 4px; right: 4px; background: none; border: none; cursor: pointer; font-size: .9rem; color: var(--muted); opacity: 0; transition: opacity .15s; padding: 2px 6px; border-radius: 4px; }
-.chat-msg-bubble:hover .chat-msg-menu-btn { opacity: 1; }
-.chat-msg-menu { position: absolute; top: 24px; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px 0; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
-.chat-msg-menu button { display: block; width: 100%; text-align: left; padding: 6px 16px; border: none; background: none; cursor: pointer; font-size: .85rem; color: var(--text); white-space: nowrap; }
-.chat-msg-menu button:hover { background: rgba(128,128,128,.1); }
+/* 非グルーピング時は上に少し余白 */
+.dc-msg:not(.dc-msg-grouped) { margin-top: 12px; }
+.dc-msg.dc-msg-grouped { margin-top: 0; }
 
-/* メッセージ編集 */
-.chat-msg-edit textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: .9rem; resize: none; background: var(--bg); color: var(--text); }
-.chat-msg-edit-actions { display: flex; gap: 8px; margin-top: 4px; }
+/* アバター列 (幅固定 40+16 = 56px) */
+.dc-msg-gutter { width: 40px; margin-right: 16px; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: center; }
+.dc-msg-avatar { text-decoration: none; }
+.dc-msg-time-inline { font-size: .65rem; color: var(--muted); margin-top: 4px; width: 40px; text-align: center; }
 
-/* タイピング表示 */
-.chat-typing { font-size: .8rem; color: var(--muted); padding: 4px 16px; animation: blink 1.5s infinite; }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+/* 本文列 */
+.dc-msg-body { flex: 1; min-width: 0; }
+.dc-msg-header { display: flex; align-items: baseline; gap: 8px; }
+.dc-msg-author { font-weight: 600; font-size: .9rem; color: var(--text); text-decoration: none; }
+.dc-msg-author:hover { text-decoration: underline; }
+.dc-msg-timestamp { font-size: .7rem; color: var(--muted); }
+.dc-msg-text { font-size: .95rem; line-height: 1.5; word-break: break-word; white-space: pre-wrap; color: var(--text); }
+.dc-msg-edited { font-size: .65rem; color: var(--muted); margin-left: 4px; }
+
+/* 編集中 */
+.dc-msg-edit textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: .9rem; resize: none; background: var(--bg); color: var(--text); }
+.dc-msg-edit-hint { font-size: .7rem; color: var(--muted); margin-top: 4px; }
+
+/* ホバーアクションバー (Discord風: メッセージ右上に浮く) */
+.dc-msg-actions { position: absolute; top: -12px; right: 16px; display: flex; gap: 2px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 2px; box-shadow: 0 2px 8px rgba(0,0,0,.1); z-index: 5; }
+.dc-msg-actions button { background: none; border: none; cursor: pointer; font-size: .9rem; padding: 4px 6px; border-radius: 3px; color: var(--muted); }
+.dc-msg-actions button:hover { background: rgba(128,128,128,.15); color: var(--text); }
+
+/* タイピング */
+.dc-typing-area { min-height: 20px; padding: 0 16px; }
+.dc-typing { font-size: .8rem; color: var(--muted); }
+.dc-typing-dots { display: inline-block; width: 24px; animation: dots-blink 1.4s infinite; }
+@keyframes dots-blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
 
 /* 入力エリア */
-.chat-input-area { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); flex-shrink: 0; }
-.chat-input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: .95rem; resize: none; background: var(--bg); color: var(--text); min-height: 40px; max-height: 120px; }
-.chat-input:focus { outline: none; border-color: var(--accent); }
-.chat-send-btn { flex-shrink: 0; }
-.chat-send-btn:disabled { opacity: .4; cursor: not-allowed; }
+.dc-input-area { padding: 0 16px 16px; flex-shrink: 0; }
+.dc-input { width: 100%; border: none; border-radius: 8px; padding: 10px 16px; font-size: .95rem; resize: none; min-height: 44px; max-height: 240px; background: rgba(128,128,128,.1); color: var(--text); }
+.dc-input:focus { outline: none; box-shadow: 0 0 0 1px var(--accent); }
+.dc-input::placeholder { color: var(--muted); }
+
+/* ===== 右サイドバー (メンバー一覧) ===== */
+.dc-sidebar { width: 240px; flex-shrink: 0; border-left: 1px solid var(--border); background: var(--card); overflow-y: auto; padding: 16px 8px; }
+.dc-sidebar-title { font-size: .8rem; font-weight: 600; color: var(--muted); text-transform: uppercase; padding: 0 8px 8px; margin: 0; }
+.dc-sidebar-section { font-size: .7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; padding: 12px 8px 4px; }
+.dc-member { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 4px; text-decoration: none; color: var(--text); }
+.dc-member:hover { background: rgba(128,128,128,.1); }
+.dc-member-name { font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* リアクション */
 .reaction-bar { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.reaction-pill { display: flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border); background: rgba(128,128,128,.05); cursor: pointer; font-size: .8rem; transition: all .15s; }
-.reaction-pill:hover { background: rgba(128,128,128,.12); }
-.reaction-pill.reacted { border-color: var(--accent); background: rgba(95,207,220,.1); }
-.reaction-emoji { font-size: 1rem; }
-.reaction-count { font-weight: 600; color: var(--muted); }
-.reaction-pill.reaction-add { color: var(--muted); font-size: 1rem; padding: 2px 10px; }
+.reaction-pill { display: flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 4px; border: 1px solid transparent; background: rgba(128,128,128,.1); cursor: pointer; font-size: .8rem; transition: all .15s; }
+.reaction-pill:hover { background: rgba(128,128,128,.18); }
+.reaction-pill.reacted { border-color: var(--accent); background: rgba(95,207,220,.12); }
+.reaction-emoji { font-size: .95rem; }
+.reaction-count { font-weight: 600; color: var(--muted); font-size: .75rem; }
+.reaction-pill.reaction-add { color: var(--muted); font-size: .9rem; padding: 2px 8px; }
 .reaction-picker-popup { position: absolute; z-index: 100; }
 
 /* 設定パネル内メンバー */
@@ -940,5 +969,5 @@ textarea.editor-pane:focus { border-color: var(--accent); }
   border-radius: 1px;
 }
 
-/* 退職バッジ (プロフィール等で使用) */
+/* 退職バッジ */
 .badge-retired { display: inline-block; background: rgba(239, 68, 68, .12); color: #ef4444; font-size: .75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-left: 6px; }
