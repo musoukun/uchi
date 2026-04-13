@@ -190,3 +190,36 @@ export type AggregationTemplate = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+// チャット
+export type ChatRoomSummary = {
+  id: string; name: string; description: string | null;
+  emoji: string | null; avatarUrl: string | null;
+  visibility: 'public' | 'private'; messageCount: number;
+  lastMessage: { body: string | null; authorName: string | null; createdAt: string } | null;
+  myRole: 'owner' | 'member' | null; unreadCount: number; favorite: boolean; createdAt: string;
+};
+export type ChatRoomMember = { id: string; name: string; avatarUrl: string | null; role: 'owner' | 'member' };
+export type ChatRoomFull = {
+  id: string; name: string; description: string | null;
+  emoji: string | null; avatarUrl: string | null;
+  visibility: 'public' | 'private'; messageCount: number;
+  myRole: 'owner' | 'member' | null; unreadCount: number;
+  members: ChatRoomMember[]; createdAt: string;
+};
+export type ChatMessage = {
+  id: string; roomId: string; body: string; type: 'user' | 'system' | 'meet';
+  authorId: string; author: { id: string; name: string; avatarUrl: string | null };
+  editedAt: string | null; isMine: boolean; reactions: ReactionGroup[];
+  createdAt: string; updatedAt: string;
+};
+export type ReactionGroup = {
+  emoji: string; count: number; userIds: string[]; userNames: string[]; reacted: boolean;
+};
+export type CustomEmoji = { id: string; name: string; aliases: string; fileUrl: string; createdAt: string };
+export type PublicRoom = {
+  id: string; name: string; description: string | null;
+  emoji: string | null; avatarUrl: string | null;
+  visibility: 'public'; memberCount: number;
+  myRole: 'owner' | 'member' | null; createdAt: string;
+};

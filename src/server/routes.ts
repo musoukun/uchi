@@ -15,6 +15,9 @@ import { notificationRoutes } from './routes-notifications';
 import { ogpRoutes } from './routes-ogp';
 import { searchRoutes } from './routes-search';
 import { adminRoutes } from './routes-admin';
+import { chatRoutes } from './routes-chat';
+import { reactionRoutes } from './routes-reactions';
+import { emojiRoutes } from './routes-emoji';
 import { notify, unnotify } from './notify';
 
 export const api = new Hono<{ Variables: { user: User | null } }>();
@@ -30,6 +33,9 @@ api.route('/notifications', notificationRoutes);
 api.route('/ogp', ogpRoutes);
 api.route('/search', searchRoutes);
 api.route('/admin', adminRoutes);
+api.route('/chat', chatRoutes);
+api.route('/reactions', reactionRoutes);
+api.route('/emoji', emojiRoutes);
 
 // ---------- file uploads (画像/GIF) ----------
 

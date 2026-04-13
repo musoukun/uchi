@@ -22,6 +22,7 @@
     "@milkdown/react": "^7.20.0",
     "@prisma/client": "^5.12.0",
     "@resvg/resvg-js": "^2.6.2",
+    "cookie": "^1.1.1",
     "emoji-picker-react": "^4.18.0",
     "hono": "^4.6.13",
     "katex": "^0.16.45",
@@ -31,11 +32,14 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.14.0",
-    "satori": "^0.26.0"
+    "satori": "^0.26.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.18.0",
     "@playwright/test": "^1.59.1",
+    "@types/cookie": "^0.6.0",
     "@types/katex": "^0.16.8",
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-container": "^4.0.0",

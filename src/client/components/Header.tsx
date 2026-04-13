@@ -60,6 +60,11 @@ export function Header() {
         <NavLink to="/communities" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
           🌐 Communities
         </NavLink>
+        {me && (
+          <NavLink to="/chat" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
+            💬 Chat
+          </NavLink>
+        )}
         <input
           className="search"
           placeholder="記事 / コミュニティ / 投稿を検索…"

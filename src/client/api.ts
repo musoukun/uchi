@@ -6,12 +6,18 @@ import type {
   AIReview,
   ArticleFull,
   ArticleListItem,
+  ChatMessage,
+  ChatRoomFull,
+  ChatRoomSummary,
+  CustomEmoji,
   CommunityFull,
   CommunitySummary,
   CommunityTimeline,
   Comment,
   Notification,
   Post,
+  PublicRoom,
+  ReactionGroup,
   Topic,
   User,
 } from './types';
@@ -420,4 +426,34 @@ export const api = {
     }),
   adminDeleteAffiliation: (id: string) =>
     req<{ ok: boolean }>(`/admin/affiliations/${id}`, { method: 'DELETE' }),
+
+  // チャット
+  listChatRooms: () => req<ChatRoomSummary[]>('/chat/rooms'),
+  listPublicRooms: (q?: string) =>
+    req<PublicRoom[]>(`/chat/public-rooms${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  createChatRoom: (input: {
+    name: string; description?: string; emoji?: string;
+    avatarUrl?: string; visibility?: 'public' | 'private'; memberIds?: string[];
+  }) => req<ChatRoomFull>('/chat/rooms', { method: 'POST', body: JSON.stringify(input) }),
+  getChatRoom: (id: string) => req<ChatRoomFull>(`/chat/rooms/${id}`),
+  updateChatRoom: (id: string, patch: Record<string, any>) =>
+    req<{ ok: boolean }>(`/chat/rooms/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteChatRoom: (id: string) =>
+    req<{ ok: boolean }>(`/chat/rooms/${id}`, { method: 'DELETE' }),
+  addChatRoomMember: (roomId: string, userId?: string) =>
+    req<{ ok: boolean }>(`/chat/rooms/${roomId}/members`, { method: 'POST', body: JSON.stringify({ userId }) }),
+  removeChatRoomMember: (roomId: string, userId: string) =>
+    req<{ ok: boolean }>(`/chat/rooms/${roomId}/members/${userId}`, { method: 'DELETE' }),
+  getChatMessages: (roomId: string, before?: string) =>
+    req<ChatMessage[]>(`/chat/rooms/${roomId}/messages${before ? `?before=${before}` : ''}`),
+  searchChatMessages: (roomId: string, q: string) =>
+    req<any[]>(`/chat/rooms/${roomId}/messages/search?q=${encodeURIComponent(q)}`),
+  togglePostReaction: (postId: string, emoji: string) =>
+    req<{ toggled: boolean; reactions: ReactionGroup[] }>(`/reactions/posts/${postId}`, { method: 'POST', body: JSON.stringify({ emoji }) }),
+  getPostReactions: (postId: string) => req<ReactionGroup[]>(`/reactions/posts/${postId}`),
+  listCustomEmoji: () => req<CustomEmoji[]>('/emoji/custom'),
+  createCustomEmoji: (name: string, fileUrl: string, aliases?: string) =>
+    req<CustomEmoji>('/emoji/custom', { method: 'POST', body: JSON.stringify({ name, fileUrl, aliases }) }),
+  deleteCustomEmoji: (id: string) =>
+    req<{ ok: boolean }>(`/emoji/custom/${id}`, { method: 'DELETE' }),
 };

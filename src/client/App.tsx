@@ -22,6 +22,8 @@ import { AggregatePage } from './pages/AggregatePage';
 import { InvitePage } from './pages/InvitePage';
 import { SearchPage } from './pages/SearchPage';
 import { AdminSettingPage } from './pages/AdminSettingPage';
+import { ChatRoomsPage } from './pages/ChatRoomsPage';
+import { ChatRoomPage } from './pages/ChatRoomPage';
 
 export function App() {
   return (
@@ -76,6 +78,22 @@ export function App() {
           element={
             <RequireAuth>
               <DraftsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <RequireAuth>
+              <ChatRoomsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/chat/:id"
+          element={
+            <RequireAuth>
+              <ChatRoomPage />
             </RequireAuth>
           }
         />

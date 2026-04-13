@@ -43,6 +43,9 @@ const isProd = process.env.NODE_ENV === 'production' || !!(import.meta as any).e
 if (isProd) {
   const { serveStatic } = await import('@hono/node-server/serve-static');
   const { readFile } = await import('node:fs/promises');
+  const { getRequestListener } = await import('@hono/node-server');
+  const { createServer } = await import('node:http');
+  const { initSocketIO } = await import('./socket');
 
   app.use('/assets/*', serveStatic({ root: './dist/client' }));
 
@@ -52,10 +55,13 @@ if (isProd) {
     return c.html(cachedHtml);
   });
 
-  const { serve } = await import('@hono/node-server');
   const port = Number(process.env.PORT ?? 3000);
-  serve({ fetch: app.fetch, port });
-  console.log(`Uchi listening on http://localhost:${port}`);
+  const requestListener = getRequestListener(app.fetch);
+  const httpServer = createServer(requestListener);
+  initSocketIO(httpServer);
+  httpServer.listen(port, () => {
+    console.log(`Uchi listening on http://localhost:${port}`);
+  });
 } else {
   app.get('*', (c) =>
     c.html(
