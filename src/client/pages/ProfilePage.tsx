@@ -85,7 +85,10 @@ export function ProfilePage() {
               )}
             </div>
             <div className="profile-hero-info">
-              <h1 className="profile-name">{u.name}</h1>
+              <h1 className="profile-name">
+                {u.name}
+                {u.isRetired && <span className="badge-retired">退職済</span>}
+              </h1>
               {u.bio && <p className="profile-bio">{u.bio}</p>}
               {u.affiliations && u.affiliations.length > 0 && (
                 <div className="profile-affiliations">

@@ -340,6 +340,51 @@ chatRoutes.delete('/rooms/:id/members/:userId', requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
+// ---------- メンバー権限変更 (管理者⇄メンバー) ----------
+
+chatRoutes.patch('/rooms/:id/members/:userId/role', requireAuth, async (c) => {
+  const me = c.get('user')!;
+  const roomId = c.req.param('id');
+  const targetUserId = c.req.param('userId');
+  await requireRoomOwner(roomId, me.id);
+
+  const { role } = await c.req.json<{ role: 'owner' | 'member' }>();
+  if (role !== 'owner' && role !== 'member') throw new Error('role は owner か member を指定してください');
+
+  const member = await prisma.chatRoomMember.findUnique({
+    where: { userId_roomId: { userId: targetUserId, roomId } },
+  });
+  if (!member) throw new Error('not found');
+
+  // 自分自身を降格するケース: 他にownerがいるか確認
+  if (targetUserId === me.id && role === 'member') {
+    const otherOwners = await prisma.chatRoomMember.count({
+      where: { roomId, role: 'owner', userId: { not: me.id } },
+    });
+    if (otherOwners === 0) throw new Error('他に管理者がいないため降格できません');
+  }
+
+  await prisma.chatRoomMember.update({
+    where: { userId_roomId: { userId: targetUserId, roomId } },
+    data: { role },
+  });
+
+  const targetUser = await prisma.user.findUnique({ where: { id: targetUserId }, select: { name: true } });
+  if (targetUser) {
+    const label = role === 'owner' ? '管理者' : 'メンバー';
+    await prisma.chatMessage.create({
+      data: {
+        roomId,
+        authorId: me.id,
+        body: `${targetUser.name} を${label}に変更しました`,
+        type: 'system',
+      },
+    });
+  }
+
+  return c.json({ ok: true });
+});
+
 // ---------- メッセージ履歴 ----------
 
 chatRoutes.get('/rooms/:id/messages', requireAuth, async (c) => {

@@ -236,6 +236,15 @@ function RoomSettingsPanel({
     }
   };
 
+  const handleChangeRole = async (userId: string, role: 'owner' | 'member') => {
+    try {
+      await api.changeChatMemberRole(room.id, userId, role);
+      onUpdated();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -265,7 +274,13 @@ function RoomSettingsPanel({
             <div key={m.id} className="chat-settings-member">
               <Avatar user={m} size={28} />
               <span>{m.name}</span>
-              <span className="muted">({m.role})</span>
+              <span className="muted">({m.role === 'owner' ? '管理者' : 'メンバー'})</span>
+              {m.role === 'member' && (
+                <button className="btn-sm" onClick={() => handleChangeRole(m.id, 'owner')}>管理者にする</button>
+              )}
+              {m.role === 'owner' && room.members.filter((x) => x.role === 'owner').length > 1 && (
+                <button className="btn-sm" onClick={() => handleChangeRole(m.id, 'member')}>メンバーにする</button>
+              )}
               {m.role !== 'owner' && (
                 <button className="btn-sm btn-ghost" onClick={() => handleRemoveMember(m.id)}>除去</button>
               )}

@@ -926,3 +926,19 @@ textarea.editor-pane:focus { border-color: var(--accent); }
 .btn-ghost:hover { color: var(--text); }
 .btn-danger { background: #ef4444; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
 .btn-danger:hover { background: #dc2626; }
+
+/* 退職済ユーザーアイコン斜線オーバーレイ */
+.avatar-retired-wrapper { position: relative; display: inline-flex; }
+.avatar-retired-slash { position: absolute; inset: 0; pointer-events: none; }
+.avatar-retired-slash::after {
+  content: '';
+  position: absolute;
+  top: 10%; left: 50%;
+  width: 2px; height: 80%;
+  background: rgba(239, 68, 68, .7);
+  transform: translateX(-50%) rotate(-45deg);
+  border-radius: 1px;
+}
+
+/* 退職バッジ (プロフィール等で使用) */
+.badge-retired { display: inline-block; background: rgba(239, 68, 68, .12); color: #ef4444; font-size: .75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-left: 6px; }

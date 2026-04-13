@@ -17,6 +17,8 @@ model User {
   bio          String?
   // 管理者フラグ。初回 /admin-setting で作成した代表アカウントが true になる。
   isAdmin      Boolean  @default(false)
+  // 退職フラグ。退職してもデータは残る。ログイン不可・アイコンに斜線表示。
+  isRetired    Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   articles         Article[]

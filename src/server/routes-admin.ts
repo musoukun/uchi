@@ -90,6 +90,7 @@ adminRoutes.get('/users', requireAdmin, async (c) => {
       name: true,
       avatarUrl: true,
       isAdmin: true,
+      isRetired: true,
       createdAt: true,
       affiliations: { include: { affiliation: true } },
     },
@@ -101,6 +102,7 @@ adminRoutes.get('/users', requireAdmin, async (c) => {
       name: u.name,
       avatarUrl: u.avatarUrl,
       isAdmin: u.isAdmin,
+      isRetired: u.isRetired,
       createdAt: u.createdAt,
       affiliations: u.affiliations.map((a) => ({
         id: a.affiliation.id,
@@ -108,6 +110,45 @@ adminRoutes.get('/users', requireAdmin, async (c) => {
       })),
     }))
   );
+});
+
+// ---- ユーザ退職 (管理者) ----
+// 投稿は一切削除せず、isRetired=true にしてセッションを全削除する。
+// 全チャットルームで管理者不在になったルームは自動削除。
+adminRoutes.post('/users/:id/retire', requireAdmin, async (c) => {
+  const me = c.get('user')!;
+  const id = c.req.param('id');
+  if (id === me.id) return c.json({ error: '自分自身は退職にできません' }, 400);
+
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return c.json({ error: 'ユーザが見つかりません' }, 404);
+  if (target.isRetired) return c.json({ error: '既に退職済みです' }, 400);
+
+  // 退職フラグを立てる + 全セッション無効化
+  await prisma.user.update({ where: { id }, data: { isRetired: true } });
+  await prisma.session.deleteMany({ where: { userId: id } });
+
+  // チャットルーム: このユーザーが所属するルームの管理者不在チェック
+  const memberships = await prisma.chatRoomMember.findMany({
+    where: { userId: id },
+    select: { roomId: true },
+  });
+
+  for (const { roomId } of memberships) {
+    await cleanupRoomIfNoActiveOwner(roomId);
+  }
+
+  return c.json({ ok: true });
+});
+
+// ---- ユーザ退職取消 (管理者) ----
+adminRoutes.post('/users/:id/unretire', requireAdmin, async (c) => {
+  const id = c.req.param('id');
+  const target = await prisma.user.findUnique({ where: { id } });
+  if (!target) return c.json({ error: 'ユーザが見つかりません' }, 404);
+  if (!target.isRetired) return c.json({ error: '退職済みではありません' }, 400);
+  await prisma.user.update({ where: { id }, data: { isRetired: false } });
+  return c.json({ ok: true });
 });
 
 // ---- ユーザの所属を上書き設定 (管理者) ----
@@ -205,3 +246,18 @@ adminRoutes.delete('/affiliations/:id', requireAdmin, async (c) => {
   await prisma.affiliation.delete({ where: { id } });
   return c.json({ ok: true });
 });
+
+// ---- ヘルパー: チャットルームの管理者不在チェック → 全員退職なら自動削除 ----
+async function cleanupRoomIfNoActiveOwner(roomId: string) {
+  // ルームの全メンバーを取得
+  const members = await prisma.chatRoomMember.findMany({
+    where: { roomId },
+    include: { user: { select: { isRetired: true } } },
+  });
+  // アクティブ (非退職) なメンバーが1人でもいればスキップ
+  const hasActiveMembers = members.some((m) => !m.user.isRetired);
+  if (hasActiveMembers) return;
+
+  // 全員退職 → ルーム自動削除 (cascade でメッセージ等も消える)
+  await prisma.chatRoom.delete({ where: { id: roomId } }).catch(() => {});
+}
