@@ -146,6 +146,18 @@ export async function canAccessTimeline(
   }
 }
 
+/** タイムラインリストからユーザーがアクセス可能なものだけ返す */
+async function filterAccessibleTimelines(
+  timelines: TimelineRow[],
+  user: { id: string } | null
+): Promise<TimelineRow[]> {
+  const results: TimelineRow[] = [];
+  for (const tl of timelines) {
+    if (await canAccessTimeline(tl, user)) results.push(tl);
+  }
+  return results;
+}
+
 // 許容される timeline visibility を community の visibility から決める。
 // 仕様:
 //   - community public   → members_only / selected_users / public / affiliation_in
@@ -286,6 +298,12 @@ communityRoutes.get('/:id', async (c) => {
     });
     community.timelines.push(home);
   }
+  // ユーザーがアクセス可能なタイムラインだけに絞る (owner は全て見える)
+  const visibleTimelines =
+    myMember?.role === 'owner'
+      ? community.timelines
+      : await filterAccessibleTimelines(community.timelines, me);
+
   return c.json({
     id: community.id,
     name: community.name,
@@ -300,7 +318,7 @@ communityRoutes.get('/:id', async (c) => {
       name: m.user.name,
       avatarUrl: m.user.avatarUrl,
     })),
-    timelines: community.timelines,
+    timelines: visibleTimelines,
     myRole: myMember?.role || null,
   });
 });
