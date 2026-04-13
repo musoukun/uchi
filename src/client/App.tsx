@@ -90,14 +90,6 @@ export function App() {
           }
         />
         <Route
-          path="/communities/:communityId/editor/:id"
-          element={
-            <RequireAuth>
-              <CommunityEditorPage />
-            </RequireAuth>
-          }
-        />
-        <Route
           path="/me/settings"
           element={
             <RequireAuth>

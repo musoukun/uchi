@@ -2,10 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { renderMd } from '../markdown';
-import { AIReviewSidebar } from '../components/AIReviewSidebar';
-import { BotIcon } from '../components/BotIcon';
 import { PublishPanel } from '../components/PublishPanel';
-import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { CommunityFull } from '../types';
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -14,7 +11,7 @@ const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 // URL: /communities/:communityId/editor  (新規)
 //      /communities/:communityId/editor/:id  (既存記事編集)
 export function CommunityEditorPage() {
-  const { communityId, id } = useParams<{ communityId: string; id?: string }>();
+  const { communityId } = useParams<{ communityId: string }>();
   const nav = useNavigate();
   const [search] = useSearchParams();
 
@@ -23,11 +20,9 @@ export function CommunityEditorPage() {
   const [body, setBody] = useState('');
   const [topics, setTopics] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(!id);
+  const [loaded, setLoaded] = useState(true);
   const [scheduledAt, setScheduledAt] = useState<string>('');
-  const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [publishPanelOpen, setPublishPanelOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // コミュニティ情報
   const [community, setCommunity] = useState<CommunityFull | null>(null);
@@ -149,58 +144,27 @@ export function CommunityEditorPage() {
     [uploadAndInsert]
   );
 
-  // 既存記事の読み込み
-  useEffect(() => {
-    if (!id) return;
-    api.getArticle(id).then((a) => {
-      if (!a) return;
-      setTitle(a.title || '');
-      setEmoji(a.emoji || '📝');
-      setBody(a.body || '');
-      setTopics((a.topics || []).map((t) => t.name));
-      if (a.scheduledAt) setScheduledAt(a.scheduledAt.slice(0, 16));
-      if (a.timelineId) setTimelineId(a.timelineId);
-      setLoaded(true);
-    });
-  }, [id]);
-
-  const save = useCallback(
-    async (published: boolean) => {
-      if (published) {
-        if (!title.trim()) { alert('タイトルを入力してください'); return; }
-        if (topics.length === 0) { alert('トピックを最低1つ入力してください'); return; }
-      }
+  const publish = useCallback(
+    async () => {
+      if (!title.trim()) { alert('タイトルを入力してください'); return; }
+      if (!body.trim()) { alert('本文を入力してください'); return; }
+      if (!communityId) return;
       setSaving(true);
-      const payload: any = {
-        title,
-        emoji,
-        type: 'howto', // コミュニティ記事はカテゴリ不問、デフォルト howto
-        body,
-        topicNames: topics,
-        published,
-        visibility: 'public', // コミュニティ側で可視性をコントロール
-        communityId: communityId || null,
-        timelineId: timelineId || null,
-        scheduledAt: scheduledAt || null,
-      };
       try {
-        const a = id
-          ? await api.updateArticle(id, payload)
-          : await api.createArticle(payload);
-        if (published) {
-          nav(`/communities/${communityId}`);
-        } else {
-          if (!id) nav(`/communities/${communityId}/editor/${a.id}`, { replace: true });
-          if (scheduledAt) alert('予約しました: ' + scheduledAt);
-          else alert('下書き保存しました');
-        }
+        await api.createPost({
+          title: title.trim(),
+          body,
+          communityId,
+          timelineId: timelineId || undefined,
+        });
+        nav(`/communities/${communityId}`);
       } catch (e: any) {
-        alert('保存失敗: ' + e.message);
+        alert('投稿失敗: ' + e.message);
       } finally {
         setSaving(false);
       }
     },
-    [id, communityId, title, emoji, body, topics, nav, timelineId, scheduledAt]
+    [communityId, title, body, nav, timelineId]
   );
 
   // overflow hidden + ヘッダ高さ計算
@@ -258,47 +222,12 @@ export function CommunityEditorPage() {
           onChange={onFileChange}
         />
         <button
-          type="button"
-          className="btn btn-ghost btn-with-icon"
-          onClick={() => setAiSidebarOpen(true)}
-          title={
-            !id
-              ? '下書き保存するとAI添削が使えるようになります'
-              : !title.trim()
-                ? 'タイトルを入力してください'
-                : !body.trim()
-                  ? '本文を入力してください'
-                  : 'AIによる添削レビューを開く'
-          }
-          disabled={!id || !title.trim() || !body.trim()}
-        >
-          <BotIcon size={16} />
-          <span>AI添削</span>
-        </button>
-        <button
-          className="btn btn-ghost"
-          disabled={saving || !title.trim() || !body.trim()}
-          title={
-            !title.trim()
-              ? 'タイトルを入力してください'
-              : !body.trim()
-                ? '本文を入力してください'
-                : '下書きとして保存'
-          }
-          onClick={() => save(false)}
-        >
-          下書き保存
-        </button>
-        <button
           className="btn"
-          disabled={saving}
+          disabled={saving || !title.trim() || !body.trim()}
           onClick={() => setPublishPanelOpen(true)}
         >
           {saving ? '保存中…' : 'タイムラインに公開'}
         </button>
-      </div>
-      <div className="editor-toolbar-note">
-        ※ AI添削は「下書き保存」してから押せるようになります
       </div>
       <div className="editor-title-row">
         <input
@@ -308,16 +237,6 @@ export function CommunityEditorPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        {id && (
-          <button
-            type="button"
-            className="editor-delete-btn"
-            onClick={() => setDeleteConfirm(true)}
-            title="この記事を削除"
-          >
-            🗑 削除
-          </button>
-        )}
       </div>
       <div className="editor-wrap">
         <textarea
@@ -348,42 +267,6 @@ export function CommunityEditorPage() {
           />
         </div>
       </div>
-      <AIReviewSidebar
-        articleId={id || null}
-        body={body}
-        open={aiSidebarOpen}
-        onOpenChange={setAiSidebarOpen}
-        onApplyLineFix={(line, newText) => {
-          setBody((b) => {
-            const lines = b.split('\n');
-            if (line < 1 || line > lines.length) return b;
-            lines[line - 1] = newText;
-            return lines.join('\n');
-          });
-        }}
-        onAppendBody={(text) => {
-          setBody((b) => (b.endsWith('\n') ? b + '\n' + text + '\n' : b + '\n\n' + text + '\n'));
-        }}
-      />
-      <ConfirmDialog
-        open={deleteConfirm}
-        title="記事を削除しますか？"
-        message="この操作は取り消せません。本当に削除しますか?"
-        yesLabel="はい (削除)"
-        noLabel="いいえ"
-        yesDanger
-        onNo={() => setDeleteConfirm(false)}
-        onYes={async () => {
-          if (!id) return;
-          try {
-            await api.deleteArticle(id);
-            setDeleteConfirm(false);
-            nav(`/communities/${communityId}`);
-          } catch (e: any) {
-            alert('削除失敗: ' + e.message);
-          }
-        }}
-      />
       <PublishPanel
         mode="community"
         open={publishPanelOpen}
@@ -400,7 +283,7 @@ export function CommunityEditorPage() {
         setTimelineId={setTimelineId}
         saving={saving}
         onPublish={async () => {
-          await save(true);
+          await publish();
           setPublishPanelOpen(false);
         }}
       />

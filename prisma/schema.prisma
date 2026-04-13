@@ -346,6 +346,7 @@ model Post {
   parentPostId String?
   parentPost   Post?    @relation("PostReplies", fields: [parentPostId], references: [id])
   replies      Post[]   @relation("PostReplies")
+  title       String?  // エディタ経由の本格投稿にはタイトルが付く (PostComposer 経由は null)
   body        String   // 文字数制限なし。クライアントで 600 字を超えたら fold
   // member 投稿は owner 承認が要るかどうか (community の運用で決まる)
   approvalStatus String @default("approved") // "approved" | "pending" | "rejected"

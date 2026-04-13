@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api';
 import type {
   Affiliation,
-  ArticleListItem,
   CommunityFull,
   CommunityMember,
   CommunityTimeline,
@@ -29,7 +28,6 @@ export function CommunityPage() {
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState<Tab>('timeline');
   const [activeTimelineId, setActiveTimelineId] = useState<string | null>(null);
-  const [tlArticles, setTlArticles] = useState<ArticleListItem[]>([]);
   const [tlPosts, setTlPosts] = useState<Post[]>([]);
   const [pending, setPending] = useState<any[]>([]);
   const [invites, setInvites] = useState<any[]>([]);
@@ -60,7 +58,6 @@ export function CommunityPage() {
 
   useEffect(() => {
     if (!activeTimelineId || !c) return;
-    api.listTimelineArticles(c.id, activeTimelineId).then(setTlArticles).catch(() => setTlArticles([]));
     api.listTimelinePosts(activeTimelineId).then(setTlPosts).catch(() => setTlPosts([]));
   }, [activeTimelineId, c]);
 
@@ -208,11 +205,7 @@ export function CommunityPage() {
   const approve = async (articleId: string) => {
     await api.approvePending(c.id, articleId);
     api.listPending(c.id).then(setPending);
-    // 承認した記事は published になるので timeline を再取得
-    if (activeTimelineId) {
-      api.listTimelineArticles(c.id, activeTimelineId).then(setTlArticles).catch(() => {});
-    }
-    setToast('記事を公開しました');
+    setToast('記事を承認しました');
   };
   const reject = async (articleId: string) => {
     const note = prompt('却下の理由 (任意)');
@@ -367,27 +360,7 @@ export function CommunityPage() {
             </div>
           )}
 
-          {/* 記事 (Markdown 長文) */}
-          {tlArticles.length > 0 && (
-            <div style={{ marginTop: 24 }}>
-              <div style={{ fontSize: 15, color: 'var(--muted)', marginBottom: 8, fontWeight: 700 }}>
-                📚 記事
-              </div>
-              {tlArticles.map((a) => (
-                <Link to={`/articles/${a.id}`} key={a.id} className="article-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div className="article-emoji">{a.emoji || '📝'}</div>
-                  <div className="article-meta">
-                    <div className="article-title">{a.title}</div>
-                    <div className="article-sub">
-                      <span>{a.author?.name}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {tlArticles.length === 0 && tlPosts.length === 0 && (
+          {tlPosts.length === 0 && (
             <div className="empty">
               {isMember
                 ? 'まだ投稿がありません。上のフォームから最初の投稿をしてみよう。'

@@ -72,8 +72,8 @@ export function PublishPanel(props: PublishPanelProps) {
 
   if (!open) return null;
 
-  // 公開ボタンのバリデーション
-  const needsTopic = topics.length === 0;
+  // 公開ボタンのバリデーション (コミュニティモードはトピック不要)
+  const needsTopic = mode === 'article' && topics.length === 0;
   const hint = needsTopic ? 'トピックを設定してください' : null;
   const canPublish = !saving && !needsTopic;
 

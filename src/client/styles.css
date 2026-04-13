@@ -462,6 +462,7 @@ textarea.editor-pane:focus { border-color: var(--accent); }
 .post-delete { background: transparent; border: 0; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
 .post-delete:hover { background: #fee2e2; color: #b91c1c; }
 
+.post-title { font-size: 22px; font-weight: 800; margin: 0 0 10px; line-height: 1.35; color: var(--text); }
 .post-body { word-break: break-word; line-height: 1.65; font-size: 16px; color: var(--text); font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; }
 .post-body p { margin: 0 0 8px; }
 .post-body p:last-child { margin-bottom: 0; }

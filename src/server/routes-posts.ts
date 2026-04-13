@@ -11,11 +11,13 @@ export const postRoutes = new Hono<{ Variables: { user: User | null } }>();
 postRoutes.post('/', requireAuth, async (c) => {
   const me = c.get('user')!;
   const input = await c.req.json<{
+    title?: string;
     body: string;
     communityId: string;
     timelineId?: string;
     parentPostId?: string;
   }>();
+  const title = input.title ? String(input.title).trim() || null : null;
   const body = String(input.body || '').trim();
   if (!body) return c.json({ error: '本文は必須です' }, 400);
   if (body.length > 50000) return c.json({ error: '本文が長すぎます (50000 文字まで)' }, 400);
@@ -68,6 +70,7 @@ postRoutes.post('/', requireAuth, async (c) => {
       communityId: input.communityId,
       timelineId,
       parentPostId,
+      title,
       body,
       approvalStatus: 'approved',
     },
@@ -242,6 +245,7 @@ function serializePost(
 ) {
   return {
     id: p.id,
+    title: p.title || null,
     body: p.body,
     authorId: p.authorId,
     author: p.author,

@@ -75,6 +75,9 @@ export function PostCard({
           </button>
         )}
       </div>
+      {post.title && (
+        <h2 className="post-title">{post.title}</h2>
+      )}
       <div className="post-body md" dangerouslySetInnerHTML={{ __html: html }} />
       {isLong && !expanded && (
         <button className="post-fold" onClick={() => setExpanded(true)}>

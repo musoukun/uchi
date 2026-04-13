@@ -276,7 +276,7 @@ export const api = {
   // ---------- Post (SNS 投稿) ----------
   listTimelinePosts: (timelineId: string) =>
     req<Post[]>(`/posts/timeline/${timelineId}`),
-  createPost: (input: { body: string; communityId: string; timelineId?: string; parentPostId?: string }) =>
+  createPost: (input: { title?: string; body: string; communityId: string; timelineId?: string; parentPostId?: string }) =>
     req<Post>('/posts', { method: 'POST', body: JSON.stringify(input) }),
   deletePost: (id: string) => req<{ ok: boolean }>(`/posts/${id}`, { method: 'DELETE' }),
   togglePostLike: (id: string) =>

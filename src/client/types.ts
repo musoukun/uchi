@@ -134,6 +134,7 @@ export type Comment = {
 
 export type Post = {
   id: string;
+  title: string | null;
   body: string;
   authorId: string;
   author: { id: string; name: string; avatarUrl: string | null };
