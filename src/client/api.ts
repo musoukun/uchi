@@ -61,7 +61,7 @@ export const api = {
 
   // me / users
   getMe: () => req<User | null>('/me'),
-  updateMe: (patch: { name?: string; bio?: string; avatarUrl?: string | null }) =>
+  updateMe: (patch: { name?: string; bio?: string; avatarUrl?: string | null; avatarColor?: string | null }) =>
     req<User>('/me', { method: 'PATCH', body: JSON.stringify(patch) }),
   getUser: (id: string) => req<import('./types').UserProfile>(`/users/${id}`),
   getUserPosts: (id: string) => req<import('./types').Post[]>(`/users/${id}/posts`),

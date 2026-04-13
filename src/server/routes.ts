@@ -185,13 +185,15 @@ api.get('/me', async (c) => {
 
 api.patch('/me', requireAuth, async (c) => {
   const me = c.get('user')!;
-  const body = await c.req.json<{ name?: string; bio?: string; avatarUrl?: string | null }>();
+  const body = await c.req.json<{ name?: string; bio?: string; avatarUrl?: string | null; avatarColor?: string | null }>();
   const data: any = {};
   if (body.name !== undefined) data.name = String(body.name).slice(0, 100);
   if (body.bio !== undefined) data.bio = String(body.bio).slice(0, 500);
   if (body.avatarUrl !== undefined) {
-    // null を明示的に渡されたら頭文字アイコンに戻す
     data.avatarUrl = body.avatarUrl === null ? null : String(body.avatarUrl).slice(0, 500);
+  }
+  if (body.avatarColor !== undefined) {
+    data.avatarColor = body.avatarColor === null ? null : String(body.avatarColor).slice(0, 7);
   }
   const updated = await prisma.user.update({ where: { id: me.id }, data });
   return c.json(safeUser(updated));

@@ -568,14 +568,13 @@ function CommunityVisibilityEditor({
   onSaved: () => void;
   onError: (msg: string) => void;
 }) {
-  // UI 上の 3 モード。affiliation_in/out は「所属」というまとめで 1 つ
-  type Mode = 'public' | 'private' | 'affiliation';
+  // UI 上の 2 モード。affiliation_in/out は「所属」というまとめで 1 つ
+  // private は廃止 — 既存の private コミュニティは public として表示
+  type Mode = 'public' | 'affiliation';
   const initialMode: Mode =
-    community.visibility === 'public'
-      ? 'public'
-      : community.visibility === 'affiliation_in' || community.visibility === 'affiliation_out'
-        ? 'affiliation'
-        : 'private';
+    community.visibility === 'affiliation_in' || community.visibility === 'affiliation_out'
+      ? 'affiliation'
+      : 'public';
   const initialSub: 'in' | 'out' =
     community.visibility === 'affiliation_out' ? 'out' : 'in';
   const initialIds = (community.visibilityAffiliationIds || '')
@@ -602,7 +601,6 @@ function CommunityVisibilityEditor({
   const save = async () => {
     let visibility: CommunityVisibility;
     if (mode === 'public') visibility = 'public';
-    else if (mode === 'private') visibility = 'private';
     else visibility = sub === 'in' ? 'affiliation_in' : 'affiliation_out';
 
     if (mode === 'affiliation' && selectedIds.length === 0) {
@@ -641,22 +639,6 @@ function CommunityVisibilityEditor({
             <strong>🌐 全体に公開</strong>
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>
               誰でも一覧から見つけられます
-            </div>
-          </span>
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
-          <input
-            type="radio"
-            name="community-visibility"
-            checked={mode === 'private'}
-            onChange={() => setMode('private')}
-            style={{ marginTop: 4 }}
-          />
-          <span>
-            <strong>🔒 限定</strong>
-            <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-              招待したメンバーのみ
             </div>
           </span>
         </label>

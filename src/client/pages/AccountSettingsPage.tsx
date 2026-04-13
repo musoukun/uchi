@@ -3,7 +3,7 @@ import { api } from '../api';
 import type { Affiliation, AIConfig } from '../types';
 import { ProfileEditor } from '../components/ProfileEditor';
 
-type Tab = 'profile' | 'affiliation' | 'ai' | 'prompts' | 'private-communities';
+type Tab = 'profile' | 'affiliation' | 'ai' | 'prompts';
 
 export function AccountSettingsPage() {
   const [tab, setTab] = useState<Tab>('profile');
@@ -16,15 +16,11 @@ export function AccountSettingsPage() {
         <button className={tab === 'affiliation' ? 'active' : ''} onClick={() => setTab('affiliation')}>所属</button>
         <button className={tab === 'ai' ? 'active' : ''} onClick={() => setTab('ai')}>AIプロバイダ</button>
         <button className={tab === 'prompts' ? 'active' : ''} onClick={() => setTab('prompts')}>プロンプト</button>
-        <button className={tab === 'private-communities' ? 'active' : ''} onClick={() => setTab('private-communities')}>
-          プライベートコミュニティ
-        </button>
       </div>
       {tab === 'profile' && <ProfileEditor />}
       {tab === 'affiliation' && <AffiliationSection />}
       {tab === 'ai' && <AIConfigSection />}
       {tab === 'prompts' && <PromptSection />}
-      {tab === 'private-communities' && <PrivateCommunitiesSection />}
     </div>
   );
 }

@@ -3,6 +3,7 @@ export type User = {
   email?: string;
   name: string;
   avatarUrl: string | null;
+  avatarColor?: string | null;
   bio: string | null;
   isAdmin?: boolean;
   isRetired?: boolean;

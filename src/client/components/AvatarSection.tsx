@@ -28,7 +28,7 @@ export function AvatarSection({
   bare?: boolean; // true なら外側の card / h3 を出さず、フラグメント風に描画
 } = {}) {
   const controlled = !!onPendingFile;
-  const [me, setMe] = useState<{ id: string; name: string; avatarUrl: string | null } | null>(null);
+  const [me, setMe] = useState<{ id: string; name: string; avatarUrl: string | null; avatarColor?: string | null } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null); // controlled 時の確定済みプレビュー
   const [previewCleared, setPreviewCleared] = useState(false); // controlled 時に「頭文字に戻す」が確定済みか
   const [img, setImg] = useState<HTMLImageElement | null>(null);
@@ -43,7 +43,10 @@ export function AvatarSection({
 
   useEffect(() => {
     api.getMe().then((u) => {
-      if (u) setMe({ id: u.id, name: u.name, avatarUrl: u.avatarUrl });
+      if (u) {
+        setMe({ id: u.id, name: u.name, avatarUrl: u.avatarUrl, avatarColor: u.avatarColor });
+        setColor(u.avatarColor || '#5fcfdc');
+      }
     });
   }, []);
 
@@ -189,6 +192,41 @@ export function AvatarSection({
     }
   };
 
+  // カラーピッカー
+  const [color, setColor] = useState('#5fcfdc');
+  const [savingColor, setSavingColor] = useState(false);
+
+  const saveColor = async () => {
+    setSavingColor(true);
+    setMsg(null);
+    try {
+      const updated = await api.updateMe({ avatarColor: color });
+      setMe((prev) => (prev ? { ...prev, avatarColor: color } : prev));
+      setGlobalMe(updated);
+      setMsg('アイコンの色を変更しました');
+    } catch (e: any) {
+      setMsg('失敗: ' + (e?.message || e));
+    } finally {
+      setSavingColor(false);
+    }
+  };
+
+  const resetColor = async () => {
+    setSavingColor(true);
+    setMsg(null);
+    try {
+      const updated = await api.updateMe({ avatarColor: null });
+      setColor('#5fcfdc');
+      setMe((prev) => (prev ? { ...prev, avatarColor: null } : prev));
+      setGlobalMe(updated);
+      setMsg('デフォルトの色に戻しました');
+    } catch (e: any) {
+      setMsg('失敗: ' + (e?.message || e));
+    } finally {
+      setSavingColor(false);
+    }
+  };
+
   // 表示用アバター (controlled 時のプレビュー優先 → クリア確定 → 現在値)
   const displayedAvatarUrl = previewCleared
     ? null
@@ -270,6 +308,24 @@ export function AvatarSection({
           <span style={{ fontSize: 14, color: 'var(--muted)' }}>
             画像を使わず、名前の1文字目を表示します
           </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            style={{ width: 40, height: 40, padding: 2, border: '2px solid var(--border)', borderRadius: 8, cursor: 'pointer', background: 'transparent' }}
+          />
+          <Avatar user={{ name: me?.name || '?', avatarUrl: null, avatarColor: color }} size="lg" />
+          <button className="btn" disabled={savingColor} onClick={saveColor}>
+            {savingColor ? '保存中…' : 'この色に変更'}
+          </button>
+          <button className="btn btn-ghost" disabled={savingColor} onClick={resetColor} style={{ fontSize: 13 }}>
+            デフォルトに戻す
+          </button>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+          文字色は背景に合わせて自動で白/黒に切り替わります
         </div>
       </div>
 
