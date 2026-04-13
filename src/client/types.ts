@@ -4,6 +4,7 @@ export type User = {
   name: string;
   avatarUrl: string | null;
   avatarColor?: string | null;
+  avatarLabel?: string | null;
   bio: string | null;
   isAdmin?: boolean;
   isRetired?: boolean;

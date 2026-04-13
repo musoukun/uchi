@@ -185,7 +185,7 @@ api.get('/me', async (c) => {
 
 api.patch('/me', requireAuth, async (c) => {
   const me = c.get('user')!;
-  const body = await c.req.json<{ name?: string; bio?: string; avatarUrl?: string | null; avatarColor?: string | null }>();
+  const body = await c.req.json<{ name?: string; bio?: string; avatarUrl?: string | null; avatarColor?: string | null; avatarLabel?: string | null }>();
   const data: any = {};
   if (body.name !== undefined) data.name = String(body.name).slice(0, 100);
   if (body.bio !== undefined) data.bio = String(body.bio).slice(0, 500);
@@ -194,6 +194,9 @@ api.patch('/me', requireAuth, async (c) => {
   }
   if (body.avatarColor !== undefined) {
     data.avatarColor = body.avatarColor === null ? null : String(body.avatarColor).slice(0, 7);
+  }
+  if (body.avatarLabel !== undefined) {
+    data.avatarLabel = body.avatarLabel ? String(body.avatarLabel).slice(0, 2) : null;
   }
   const updated = await prisma.user.update({ where: { id: me.id }, data });
   return c.json(safeUser(updated));

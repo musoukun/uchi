@@ -185,42 +185,6 @@ adminRoutes.delete('/users/:id', requireAdmin, async (c) => {
   return c.json({ ok: true });
 });
 
-// ---- 全コミュニティ一覧 (管理者: 投稿は含めない) ----
-adminRoutes.get('/communities', requireAdmin, async (c) => {
-  const all = await prisma.community.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      _count: { select: { members: true } },
-    },
-  });
-  const ownerRows = await prisma.communityMember.groupBy({
-    by: ['communityId'],
-    where: { role: 'owner' },
-    _count: { _all: true },
-  });
-  const ownerMap = new Map(ownerRows.map((r) => [r.communityId, r._count._all]));
-  return c.json(
-    all.map((c2) => ({
-      id: c2.id,
-      name: c2.name,
-      slug: c2.slug,
-      description: c2.description,
-      avatarUrl: c2.avatarUrl,
-      visibility: c2.visibility,
-      memberCount: c2._count.members,
-      ownerCount: ownerMap.get(c2.id) || 0,
-      createdAt: c2.createdAt,
-    }))
-  );
-});
-
-// ---- コミュニティ削除 (管理者) ----
-adminRoutes.delete('/communities/:id', requireAdmin, async (c) => {
-  const id = c.req.param('id');
-  await prisma.community.delete({ where: { id } });
-  return c.json({ ok: true });
-});
-
 // ---- 既存の affiliation 一覧 (管理者) ----
 // ---- 新規作成 (管理者) ----
 adminRoutes.post('/affiliations', requireAdmin, async (c) => {

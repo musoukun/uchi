@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import type { CommunitySummary } from '../types';
+import { Avatar } from '../components/Avatar';
 
 export function CommunitiesPage() {
   const [items, setItems] = useState<CommunitySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'private'>('private');
+  const [visibility, setVisibility] = useState<'public'>('public');
   const [creating, setCreating] = useState(false);
 
   const reload = () => api.listCommunities().then((r) => { setItems(r); setLoading(false); });
@@ -36,19 +37,7 @@ export function CommunitiesPage() {
 
   const renderCard = (c: CommunitySummary) => (
     <Link to={`/communities/${c.id}`} key={c.id} className="article-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-      {c.avatarUrl ? (
-        <span className="avatar lg avatar-img" style={{ flexShrink: 0 }}>
-          <img src={c.avatarUrl} alt={c.name} />
-        </span>
-      ) : (
-        <div className="article-emoji">
-          {c.visibility === 'public'
-            ? '🌐'
-            : c.visibility === 'private'
-              ? '🔒'
-              : '🏷'}
-        </div>
-      )}
+      <Avatar user={{ name: c.name, avatarUrl: c.avatarUrl, avatarColor: c.avatarColor }} size="lg" />
       <div className="article-meta">
         <div className="article-title">{c.name}</div>
         <div className="article-sub">
@@ -85,15 +74,7 @@ export function CommunitiesPage() {
           style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', minHeight: 60, marginBottom: 8 }}
         />
         <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 15, marginRight: 8, fontWeight: 600 }}>公開範囲:</label>
-          <select
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value as any)}
-            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)' }}
-          >
-            <option value="private">🔒 限定 (招待したメンバーのみ)</option>
-            <option value="public">🌐 全体に公開 (誰でも一覧から見つけられる)</option>
-          </select>
+          <span style={{ fontSize: 14, color: 'var(--muted)' }}>🌐 全体に公開されます (所属による制限は作成後に設定できます)</span>
         </div>
         <button className="btn" disabled={creating} onClick={create}>
           {creating ? '作成中…' : '作成'}

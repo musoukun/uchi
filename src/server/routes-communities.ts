@@ -24,9 +24,8 @@ async function requireOwner(communityId: string, userId: string) {
 }
 
 // ---- visibility helpers -------------------------------------------------
-// Community.visibility ∈ { public | private | affiliation_in | affiliation_out }
+// Community.visibility ∈ { public | affiliation_in | affiliation_out }
 //   public           … 全体に公開
-//   private          … 招待したメンバーのみ (非メンバーからは存在を隠す)
 //   affiliation_in   … 指定の所属 ID のいずれかに属するユーザーにだけ見える
 //   affiliation_out  … 指定の所属 ID のいずれにも属していないユーザーにだけ見える
 // affiliation_* は管理者 (User.isAdmin) のみが設定可能。
@@ -46,7 +45,6 @@ function isCommunityVisibleTo(
   // メンバーは常に見える (所属フィルタで自分のコミュニティが見えなくなると混乱するため)
   if (isMember) return true;
   if (c2.visibility === 'public') return true;
-  if (c2.visibility === 'private') return false;
   const ids = (c2.visibilityAffiliationIds || '').split(',').filter(Boolean);
   if (c2.visibility === 'affiliation_in') {
     return ids.some((id) => myAffIds.has(id));
@@ -61,16 +59,14 @@ function isCommunityVisibleTo(
 function normalizeVisibility(
   requested: string | undefined,
   isAdmin: boolean
-): { visibility: 'public' | 'private' | 'affiliation_in' | 'affiliation_out'; affiliationAllowed: boolean } {
-  if (requested === 'public') return { visibility: 'public', affiliationAllowed: false };
+): { visibility: 'public' | 'affiliation_in' | 'affiliation_out'; affiliationAllowed: boolean } {
   if (requested === 'affiliation_in' || requested === 'affiliation_out') {
     if (!isAdmin) {
-      // 権限が無ければ public にフォールバックせずエラーにする
       throw new Error('affiliation_visibility_admin_only');
     }
     return { visibility: requested, affiliationAllowed: true };
   }
-  return { visibility: 'private', affiliationAllowed: false };
+  return { visibility: 'public', affiliationAllowed: false };
 }
 
 function normalizeAffIdList(input: unknown): string {
@@ -202,6 +198,7 @@ communityRoutes.get('/', async (c) => {
       slug: c2.slug,
       description: c2.description,
       avatarUrl: c2.avatarUrl,
+      avatarColor: c2.avatarColor,
       visibility: c2.visibility,
       visibilityAffiliationIds: c2.visibilityAffiliationIds,
       memberCount: c2._count.members,
@@ -221,7 +218,7 @@ communityRoutes.post('/', requireAuth, async (c) => {
   }>();
   const trimmed = String(name || '').trim().slice(0, 60);
   if (!trimmed) return c.json({ error: 'name は必須です' }, 400);
-  let vis: 'public' | 'private' | 'affiliation_in' | 'affiliation_out';
+  let vis: 'public' | 'affiliation_in' | 'affiliation_out';
   let allowAffIds: boolean;
   try {
     const r = normalizeVisibility(visibility, !!me.isAdmin);
@@ -313,7 +310,7 @@ communityRoutes.patch('/:id', requireAuth, async (c) => {
     }>();
   // visibility 関連のパッチ
   const visPatch: {
-    visibility?: 'public' | 'private' | 'affiliation_in' | 'affiliation_out';
+    visibility?: 'public' | 'affiliation_in' | 'affiliation_out';
     visibilityAffiliationIds?: string;
   } = {};
   if (visibility !== undefined) {
@@ -356,7 +353,7 @@ communityRoutes.post('/:id/join', requireAuth, async (c) => {
   if (!community) return c.json({ error: 'コミュニティが見つかりません' }, 404);
   if (community.visibility !== 'public') {
     return c.json(
-      { error: 'private_only', message: '非公開コミュニティへは招待リンクからのみ参加できます' },
+      { error: 'restricted', message: '公開範囲が制限されたコミュニティへは招待リンクからのみ参加できます' },
       403
     );
   }
@@ -388,10 +385,6 @@ communityRoutes.post('/:id/members', requireAuth, async (c) => {
   if (existing) return c.json({ ok: true, already: true });
   await prisma.communityMember.create({
     data: { userId, communityId: id, role: 'member' },
-  });
-  // 過去の脱退ログがあれば消す
-  await prisma.communityLeftLog.deleteMany({
-    where: { userId, communityId: id },
   });
   return c.json({ ok: true });
 });
@@ -426,89 +419,6 @@ communityRoutes.delete('/:id/members/:userId', requireAuth, async (c) => {
   // 代表不在になったコミュニティは「活動停止状態」として UI 側でラベル表示する。
   await prisma.communityMember.delete({
     where: { userId_communityId: { userId: targetUserId, communityId: id } },
-  });
-  // private コミュニティを脱退した場合、本人だけが見える left-log を残す
-  // (一覧 API では非メンバーから隠れるので、ここに記録しないと再発見できなくなる)
-  const community = await prisma.community.findUnique({ where: { id } });
-  if (community?.visibility === 'private') {
-    await prisma.communityLeftLog.upsert({
-      where: { userId_communityId: { userId: targetUserId, communityId: id } },
-      create: { userId: targetUserId, communityId: id },
-      update: { leftAt: new Date() },
-    });
-  }
-  return c.json({ ok: true });
-});
-
-// ---------- 自分が抜けた private コミュニティ (本人専用 / ページネーション付き) ----------
-
-communityRoutes.get('/me/left-private', requireAuth, async (c) => {
-  const me = c.get('user')!;
-  const page = Math.max(1, parseInt(c.req.query('page') || '1', 10) || 1);
-  const pageSize = Math.min(50, Math.max(1, parseInt(c.req.query('pageSize') || '10', 10) || 10));
-  const where = { userId: me.id, community: { visibility: 'private' as const } };
-  const [total, rows] = await Promise.all([
-    prisma.communityLeftLog.count({ where }),
-    prisma.communityLeftLog.findMany({
-      where,
-      orderBy: { leftAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: {
-        community: {
-          include: { _count: { select: { members: true } } },
-        },
-      },
-    }),
-  ]);
-  const ownerRows = await prisma.communityMember.groupBy({
-    by: ['communityId'],
-    where: { role: 'owner', communityId: { in: rows.map((r) => r.communityId) } },
-    _count: { _all: true },
-  });
-  const ownerMap = new Map(ownerRows.map((r) => [r.communityId, r._count._all]));
-  return c.json({
-    page,
-    pageSize,
-    total,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
-    items: rows.map((r) => ({
-      id: r.community.id,
-      name: r.community.name,
-      slug: r.community.slug,
-      description: r.community.description,
-      avatarUrl: r.community.avatarUrl,
-      visibility: r.community.visibility,
-      memberCount: r.community._count.members,
-      ownerCount: ownerMap.get(r.community.id) || 0,
-      leftAt: r.leftAt,
-    })),
-  });
-});
-
-// 自分が以前抜けた private コミュニティへ「再参加」するための専用エンドポイント。
-// 通常 private は招待リンク必須だが、left-log がある = 過去にメンバーだった人なので
-// 本人都合で抜けた場合のリカバリとして直接戻れる。
-communityRoutes.post('/:id/rejoin', requireAuth, async (c) => {
-  const me = c.get('user')!;
-  const id = c.req.param('id');
-  const log = await prisma.communityLeftLog.findUnique({
-    where: { userId_communityId: { userId: me.id, communityId: id } },
-  });
-  if (!log) return c.json({ error: '再参加権限がありません (脱退履歴がありません)' }, 403);
-  const community = await prisma.community.findUnique({ where: { id } });
-  if (!community) return c.json({ error: 'コミュニティが見つかりません' }, 404);
-  // 既に何らかの理由で再参加済みなら冪等成功
-  const existing = await prisma.communityMember.findUnique({
-    where: { userId_communityId: { userId: me.id, communityId: id } },
-  });
-  if (!existing) {
-    await prisma.communityMember.create({
-      data: { userId: me.id, communityId: id, role: 'member' },
-    });
-  }
-  await prisma.communityLeftLog.delete({
-    where: { userId_communityId: { userId: me.id, communityId: id } },
   });
   return c.json({ ok: true });
 });
@@ -582,10 +492,6 @@ communityRoutes.post('/invites/accept', requireAuth, async (c) => {
     prisma.communityInvite.update({
       where: { id: inv.id },
       data: { acceptedAt: new Date() },
-    }),
-    // 過去に脱退していた場合は left-log を消す
-    prisma.communityLeftLog.deleteMany({
-      where: { userId: me.id, communityId: inv.communityId },
     }),
   ]);
   return c.json({ ok: true, communityId: inv.communityId });

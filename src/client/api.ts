@@ -61,7 +61,7 @@ export const api = {
 
   // me / users
   getMe: () => req<User | null>('/me'),
-  updateMe: (patch: { name?: string; bio?: string; avatarUrl?: string | null; avatarColor?: string | null }) =>
+  updateMe: (patch: { name?: string; bio?: string; avatarUrl?: string | null; avatarColor?: string | null; avatarLabel?: string | null }) =>
     req<User>('/me', { method: 'PATCH', body: JSON.stringify(patch) }),
   getUser: (id: string) => req<import('./types').UserProfile>(`/users/${id}`),
   getUserPosts: (id: string) => req<import('./types').Post[]>(`/users/${id}/posts`),
@@ -165,7 +165,7 @@ export const api = {
   createCommunity: (input: {
     name: string;
     description?: string;
-    visibility?: 'public' | 'private' | 'affiliation_in' | 'affiliation_out';
+    visibility?: 'public' | 'affiliation_in' | 'affiliation_out';
     visibilityAffiliationIds?: string[];
   }) =>
     req<{ id: string; slug: string; name: string }>('/communities', {
@@ -178,7 +178,7 @@ export const api = {
     patch: {
       name?: string;
       description?: string;
-      visibility?: 'public' | 'private' | 'affiliation_in' | 'affiliation_out';
+      visibility?: 'public' | 'affiliation_in' | 'affiliation_out';
       visibilityAffiliationIds?: string[];
       avatarUrl?: string | null;
       avatarColor?: string | null;
@@ -202,28 +202,6 @@ export const api = {
     ),
   joinCommunity: (id: string) =>
     req<{ ok: boolean; already?: boolean }>(`/communities/${id}/join`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    }),
-  listMyLeftPrivateCommunities: (page = 1, pageSize = 10) =>
-    req<{
-      page: number;
-      pageSize: number;
-      total: number;
-      totalPages: number;
-      items: Array<{
-        id: string;
-        name: string;
-        slug: string;
-        description: string | null;
-        visibility: 'private';
-        memberCount: number;
-        ownerCount: number;
-        leftAt: string;
-      }>;
-    }>(`/communities/me/left-private?page=${page}&pageSize=${pageSize}`),
-  rejoinCommunity: (id: string) =>
-    req<{ ok: boolean }>(`/communities/${id}/rejoin`, {
       method: 'POST',
       body: JSON.stringify({}),
     }),
@@ -403,22 +381,6 @@ export const api = {
     }),
   adminDeleteUser: (userId: string) =>
     req<{ ok: boolean }>(`/admin/users/${userId}`, { method: 'DELETE' }),
-  adminListCommunities: () =>
-    req<
-      Array<{
-        id: string;
-        name: string;
-        slug: string;
-        description: string | null;
-        avatarUrl: string | null;
-        visibility: 'public' | 'private';
-        memberCount: number;
-        ownerCount: number;
-        createdAt: string;
-      }>
-    >('/admin/communities'),
-  adminDeleteCommunity: (id: string) =>
-    req<{ ok: boolean }>(`/admin/communities/${id}`, { method: 'DELETE' }),
   adminCreateAffiliation: (name: string) =>
     req<Affiliation>('/admin/affiliations', {
       method: 'POST',

@@ -5,6 +5,7 @@ type Props = {
     name?: string | null;
     avatarUrl?: string | null;
     avatarColor?: string | null;
+    avatarLabel?: string | null;
     isRetired?: boolean;
   } | null | undefined;
   size?: 'lg' | number;
@@ -22,7 +23,7 @@ function contrastText(hex: string): string {
 
 export function Avatar({ user, size }: Props) {
   if (!user) return <span className="avatar" />;
-  const initial = (user.name || '?').charAt(0).toUpperCase();
+  const initial = user.avatarLabel || (user.name || '?').charAt(0).toUpperCase();
   const sizeClass = size === 'lg' ? ' lg' : '';
   const cls = 'avatar' + sizeClass + ' avatar-img';
   const numSize = typeof size === 'number' ? size : undefined;
@@ -35,10 +36,15 @@ export function Avatar({ user, size }: Props) {
   ) : (() => {
     const bg = user.avatarColor || undefined;
     const fg = bg ? contrastText(bg) : undefined;
+    const twoChar = initial.length > 1;
     return (
       <span
         className={'avatar' + sizeClass}
-        style={{ ...sizeStyle, ...(bg ? { background: bg, color: fg } : {}) }}
+        style={{
+          ...sizeStyle,
+          ...(bg ? { background: bg, color: fg } : {}),
+          ...(twoChar ? { fontSize: numSize ? numSize * 0.35 : '0.7em' } : {}),
+        }}
       >
         {initial}
       </span>

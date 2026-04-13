@@ -17,6 +17,7 @@ export function ProfileEditor({
   const me = useMe();
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
+  const [avatarLabel, setAvatarLabel] = useState('');
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
   // 「頭文字アイコンに戻す」が確定されたか (保存時に avatarUrl=null を送る)
@@ -28,6 +29,7 @@ export function ProfileEditor({
     if (me) {
       setName(me.name || '');
       setBio(me.bio || '');
+      setAvatarLabel(me.avatarLabel || '');
     }
   }, [me?.id]);
 
@@ -52,7 +54,9 @@ export function ProfileEditor({
     setSaving(true);
     setMsg(null);
     try {
-      const patch: { name: string; bio: string; avatarUrl?: string | null } = { name, bio };
+      const patch: { name: string; bio: string; avatarUrl?: string | null; avatarLabel?: string | null } = { name, bio };
+      // 頭文字ラベル: 空文字なら null (名前の先頭1文字に戻す)
+      patch.avatarLabel = avatarLabel.trim() || null;
       if (pendingAvatar) {
         const up = await api.uploadFile(pendingAvatar);
         patch.avatarUrl = up.url;
@@ -87,6 +91,7 @@ export function ProfileEditor({
     ...me,
     name,
     avatarUrl: clearAvatar ? null : pendingPreviewUrl || me.avatarUrl,
+    avatarLabel: avatarLabel.trim() || null,
   };
 
   return (
@@ -126,6 +131,25 @@ export function ProfileEditor({
         className="profile-editor-textarea"
         placeholder="自己紹介 (500文字まで)"
       />
+
+      {/* 頭文字ラベル (画像を使わない場合に表示する文字) */}
+      <label className="profile-editor-label" style={{ marginTop: 12 }}>
+        アイコン文字 (2文字まで)
+      </label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input
+          type="text"
+          value={avatarLabel}
+          onChange={(e) => setAvatarLabel(e.target.value.slice(0, 2))}
+          maxLength={2}
+          className="profile-editor-input"
+          placeholder={name ? name.charAt(0) : ''}
+          style={{ width: 80, textAlign: 'center', fontSize: 18, fontWeight: 700 }}
+        />
+        <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+          空欄なら名前の先頭文字を使用
+        </span>
+      </div>
 
       {/* アバター画像編集 (controlled, bare) */}
       <div className="profile-editor-avatar-block">

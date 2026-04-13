@@ -81,7 +81,7 @@ function AdminInitForm({ onCreated }: { onCreated: () => void }) {
         <h2 style={{ marginTop: 0 }}>管理者アカウントを作成</h2>
         <p style={{ color: 'var(--muted)', fontSize: 14 }}>
           このアプリにはまだ管理者がいません。最初の管理者アカウントを作成してください。
-          ここで作ったアカウントは管理者権限を持ち、所属マスタ・ユーザ削除・プライベートコミュニティ管理ができるようになります。
+          ここで作ったアカウントは管理者権限を持ち、所属マスタ・ユーザ削除などの管理ができるようになります。
         </p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label className="profile-editor-label">表示名</label>
@@ -121,7 +121,7 @@ function AdminInitForm({ onCreated }: { onCreated: () => void }) {
 
 // ---------- ダッシュボード ----------
 
-type Tab = 'users' | 'communities' | 'affiliations';
+type Tab = 'users' | 'affiliations';
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('users');
@@ -130,11 +130,9 @@ function AdminDashboard() {
       <h2 style={{ marginTop: 0 }}>管理者ページ</h2>
       <div className="tabs">
         <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>ユーザ管理</button>
-        <button className={tab === 'communities' ? 'active' : ''} onClick={() => setTab('communities')}>プライベートコミュニティ</button>
         <button className={tab === 'affiliations' ? 'active' : ''} onClick={() => setTab('affiliations')}>所属マスタ</button>
       </div>
       {tab === 'users' && <AdminUsersSection />}
-      {tab === 'communities' && <AdminCommunitiesSection />}
       {tab === 'affiliations' && <AdminAffiliationsSection />}
     </div>
   );
@@ -296,115 +294,6 @@ function AdminUsersSection() {
           </li>
         ))}
       </ul>
-      {totalPages > 1 && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: 16,
-          }}
-        >
-          <button className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(page - 1)}>← 前へ</button>
-          <span style={{ color: 'var(--muted)', fontSize: 14 }}>
-            {page} / {totalPages} ページ
-          </span>
-          <button className="btn btn-ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>次へ →</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------- コミュニティ管理 ----------
-
-function AdminCommunitiesSection() {
-  const [list, setList] = useState<
-    Array<{
-      id: string;
-      name: string;
-      description: string | null;
-      visibility: 'public' | 'private';
-      memberCount: number;
-      ownerCount: number;
-      avatarUrl: string | null;
-    }>
-  >([]);
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const [msg, setMsg] = useState<string | null>(null);
-
-  const reload = async () => {
-    const r = await api.adminListCommunities();
-    setList(r.filter((c) => c.visibility === 'private'));
-  };
-  useEffect(() => {
-    reload();
-  }, []);
-  useEffect(() => {
-    if (!msg) return;
-    const t = setTimeout(() => setMsg(null), 2500);
-    return () => clearTimeout(t);
-  }, [msg]);
-
-  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
-  const pageItems = list.slice((page - 1) * pageSize, page * pageSize);
-
-  const onDelete = async (id: string, name: string) => {
-    if (!confirm(`コミュニティ「${name}」を削除しますか?\nメンバー・投稿・タイムラインも全て削除されます。`)) return;
-    try {
-      await api.adminDeleteCommunity(id);
-      setMsg('削除しました');
-      reload();
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : '失敗しました');
-    }
-  };
-
-  return (
-    <div className="card">
-      {msg && <div className="toast" role="status">{msg}</div>}
-      <h3 style={{ marginTop: 0 }}>プライベートコミュニティ ({list.length} 件)</h3>
-      <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 0 }}>
-        全てのプライベートコミュニティを一覧します。投稿の中身は管理者でも閲覧できません (プライバシー保護のため)。
-        放置された無人コミュニティの整理などに使ってください。
-      </p>
-      {list.length === 0 ? (
-        <p style={{ color: 'var(--muted)' }}>プライベートコミュニティはありません。</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {pageItems.map((c) => (
-            <li
-              key={c.id}
-              style={{
-                display: 'flex',
-                gap: 12,
-                padding: '12px 0',
-                borderBottom: '1px solid var(--border)',
-                alignItems: 'center',
-              }}
-            >
-              <Avatar user={{ name: c.name, avatarUrl: c.avatarUrl }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>🔒 {c.name}</div>
-                {c.description && (
-                  <div style={{ color: 'var(--muted)', fontSize: 14 }}>{c.description}</div>
-                )}
-                <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>
-                  {c.memberCount} メンバー
-                  {c.ownerCount === 0 && (
-                    <span className="badge badge-no-owner" style={{ marginLeft: 8 }}>👻 代表者なし</span>
-                  )}
-                </div>
-              </div>
-              <button className="btn btn-danger" onClick={() => onDelete(c.id, c.name)}>
-                削除
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
       {totalPages > 1 && (
         <div
           style={{

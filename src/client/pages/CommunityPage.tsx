@@ -233,11 +233,9 @@ export function CommunityPage() {
           <span className={`badge badge-${c.visibility}`}>
             {c.visibility === 'public'
               ? '🌐 全体公開'
-              : c.visibility === 'private'
-                ? '🔒 限定'
-                : c.visibility === 'affiliation_in'
-                  ? '🏷 所属限定'
-                  : '🏷 所属除外'}
+              : c.visibility === 'affiliation_in'
+                ? '🏷 所属限定'
+                : '🏷 所属除外'}
           </span>
         </div>
         {ownerCount === 0 && (
@@ -257,9 +255,7 @@ export function CommunityPage() {
             <span className="badge badge-outsider">
               {c.visibility === 'public'
                 ? '未参加'
-                : c.visibility === 'private'
-                  ? '未参加 / 招待リンクが必要です'
-                  : '未参加 / 管理者にお問い合わせください'}
+                : '未参加 / 管理者にお問い合わせください'}
             </span>
           )}
           {isMember && (
@@ -548,9 +544,8 @@ export function CommunityPage() {
 
 // ---------------------------------------------------------------
 // 公開範囲エディタ
-// 3 モード:
+// 2 モード:
 //   public           … 全体に公開
-//   private          … 招待したメンバーのみ
 //   affiliation_*    … 管理者専用 / 所属IDリストで可視性を制御
 //     - affiliation_in  : 指定した所属に属するユーザーに「見える」
 //     - affiliation_out : 指定した所属に属するユーザーには「見えない」
@@ -569,7 +564,6 @@ function CommunityVisibilityEditor({
   onError: (msg: string) => void;
 }) {
   // UI 上の 2 モード。affiliation_in/out は「所属」というまとめで 1 つ
-  // private は廃止 — 既存の private コミュニティは public として表示
   type Mode = 'public' | 'affiliation';
   const initialMode: Mode =
     community.visibility === 'affiliation_in' || community.visibility === 'affiliation_out'

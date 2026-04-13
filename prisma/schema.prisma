@@ -15,6 +15,7 @@ model User {
   passwordHash String
   avatarUrl    String?
   avatarColor  String?  // 頭文字アイコンの背景色 (hex)。未設定なら --accent
+  avatarLabel  String?  // 頭文字アイコンに表示する文字 (最大2文字)。未設定なら name の先頭1文字
   bio          String?
   // 管理者フラグ。初回 /admin-setting で作成した代表アカウントが true になる。
   isAdmin      Boolean  @default(false)
@@ -29,7 +30,6 @@ model User {
   sessions         Session[]
   affiliations     UserAffiliation[]
   communityMembers CommunityMember[]
-  communityLeftLogs CommunityLeftLog[]
   aiConfigs        UserAIConfig[]
   aiPrompts        UserAIPrompt[]
   aggTemplates     AggregationTemplate[]
@@ -191,18 +191,16 @@ model Community {
   description String?
   avatarUrl   String?  // コミュニティアイコン (画像 URL)。未設定なら頭文字フォールバック
   avatarColor String?  // 頭文字アイコンの背景色 (hex, 例: "#5fcfdc")。未設定なら --accent
-  // "public" | "private" | "affiliation_in" | "affiliation_out"
+  // "public" | "affiliation_in" | "affiliation_out"
   //   public           … 全体に公開
-  //   private          … 招待したメンバーのみ
   //   affiliation_in   … 指定の所属に属するユーザーにだけ見える (管理者のみ設定可)
   //   affiliation_out  … 指定の所属に属するユーザーには見えない (管理者のみ設定可)
-  visibility               String   @default("private")
+  visibility               String   @default("public")
   // affiliation_* で参照する所属 ID の CSV
   visibilityAffiliationIds String   @default("")
   createdAt                DateTime @default(now())
 
   members   CommunityMember[]
-  leftLogs  CommunityLeftLog[]
   invites   CommunityInvite[]
   timelines CommunityTimeline[]
   articles  Article[]
@@ -220,22 +218,6 @@ model CommunityMember {
 
   @@id([userId, communityId])
   @@index([communityId])
-}
-
-// 過去に private コミュニティを脱退した履歴。
-// private コミュニティは非メンバーから存在を隠すため、脱退すると一覧から消えてしまう。
-// 「設定 > プライベートコミュニティ」タブで自分が抜けた private コミュニティだけ
-// 再表示・再参加できるようにするためのテーブル。
-model CommunityLeftLog {
-  id          String   @id @default(cuid())
-  userId      String
-  communityId String
-  leftAt      DateTime @default(now())
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, communityId])
-  @@index([userId])
 }
 
 model CommunityInvite {
