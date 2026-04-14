@@ -566,6 +566,13 @@ model GoogleOAuthToken {
 // パルスサーベイ (週次チームエンゲージメント計測)
 // ============================================================
 
+// 機能フラグ (管理者が画面から ON/OFF)
+model FeatureFlag {
+  key       String   @id
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
 model PulseSurvey {
   id            String   @id @default(cuid())
   // null = 全社サーベイ (所属なしユーザー用)

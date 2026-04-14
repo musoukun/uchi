@@ -53,6 +53,8 @@ test.describe('パルスサーベイ', () => {
 
     // 1. 管理者としてログイン
     const admin = await loginAsAdmin(page);
+    // パルスサーベイ機能を ON (デフォルト OFF)
+    await page.request.put('/api/admin/features/pulse', { data: { enabled: true } });
 
     // 2. 所属を作成
     const affName = `Team-${stamp()}`;

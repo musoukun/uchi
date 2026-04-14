@@ -456,6 +456,14 @@ export const api = {
   adminClosePulseSurvey: (id: string) =>
     req<{ ok: boolean }>(`/admin/pulse/surveys/${id}/close`, { method: 'PATCH' }),
 
+  // ---- admin: 機能フラグ ----
+  adminGetFeatures: () => req<{ chat: boolean; pulse: boolean }>('/admin/features'),
+  adminSetFeature: (key: 'chat' | 'pulse', enabled: boolean) =>
+    req<{ ok: boolean }>(`/admin/features/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    }),
+
   // チャット
   listChatRooms: () => req<ChatRoomSummary[]>('/chat/rooms'),
   listPublicRooms: (q?: string) =>

@@ -20,6 +20,7 @@ import { reactionRoutes } from './routes-reactions';
 import { emojiRoutes } from './routes-emoji';
 import { pulseRoutes } from './routes-pulse';
 import { notify, unnotify } from './notify';
+import { getAllFeatures, requireFeature } from './feature-flags';
 
 export const api = new Hono<{ Variables: { user: User | null } }>();
 
@@ -34,10 +35,19 @@ api.route('/notifications', notificationRoutes);
 api.route('/ogp', ogpRoutes);
 api.route('/search', searchRoutes);
 api.route('/admin', adminRoutes);
+// 機能フラグで保護 (無効化されていたら 404)
+api.use('/chat/*', requireFeature('chat'));
 api.route('/chat', chatRoutes);
 api.route('/reactions', reactionRoutes);
 api.route('/emoji', emojiRoutes);
+api.use('/pulse/*', requireFeature('pulse'));
 api.route('/pulse', pulseRoutes);
+
+// 公開 API: 機能フラグ一覧 (ログイン前でも読める)
+api.get('/config/features', async (c) => {
+  const features = await getAllFeatures();
+  return c.json(features);
+});
 
 // ---------- file uploads (画像/GIF) ----------
 

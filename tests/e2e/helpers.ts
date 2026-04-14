@@ -22,6 +22,25 @@ export async function registerAndLogin(page: Page, prefix = 'e2e'): Promise<{
   return { email, password, name };
 }
 
+const E2E_ADMIN_FIXED = { email: 'e2e-admin@example.test', password: 'e2eadmin12345', name: 'E2E Admin' };
+
+/** テスト用: 管理者セッションを確立 (init または login) して機能フラグを ON に */
+export async function enableFeatureForTest(page: Page, key: 'chat' | 'pulse') {
+  const existsRes = await page.request.get('/api/admin/exists');
+  const { exists } = await existsRes.json();
+  if (!exists) {
+    await page.request.post('/api/admin/init', { data: E2E_ADMIN_FIXED });
+  } else {
+    const meRes = await page.request.get('/api/admin/me');
+    if (!meRes.ok()) {
+      await page.request.post('/api/admin/auth/login', {
+        data: { email: E2E_ADMIN_FIXED.email, password: E2E_ADMIN_FIXED.password },
+      });
+    }
+  }
+  await page.request.put(`/api/admin/features/${key}`, { data: { enabled: true } });
+}
+
 export async function createArticleViaApi(
   page: Page,
   input: { title: string; body: string; topicNames?: string[]; published?: boolean }

@@ -2,33 +2,31 @@ import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
 const stamp = () => Date.now() + '-' + Math.random().toString(36).slice(2, 8);
 
-/**
- * 管理者セッションを確実に用意する。
- * - /admin/exists で既存管理者の有無を確認
- *   - いなければ /api/admin/init で初期管理者を作成 (= 同時にログインされる)
- *   - 既にいれば /api/admin/invites で招待を作り、その招待でログイン
- */
+// 決定論的な E2E 用管理者クレデンシャル。初回 init で作り、以降は login で再利用。
+const E2E_ADMIN = { email: 'e2e-admin@example.test', password: 'e2eadmin12345', name: 'E2E Admin' };
+
+/** 管理者セッションを確立する (init 済みなら login) */
 async function ensureAdminLogin(page: Page) {
-  const s = stamp();
   const existsRes = await page.request.get('/api/admin/exists');
   const { exists } = await existsRes.json();
 
   if (!exists) {
-    const creds = { email: `pulseadmin-${s}@example.test`, password: `pw-${s}`, name: `Admin-${s}` };
-    const r = await page.request.post('/api/admin/init', { data: creds });
+    const r = await page.request.post('/api/admin/init', { data: E2E_ADMIN });
     expect(r.ok(), `admin/init failed: ${r.status()}`).toBeTruthy();
-    return creds;
+    return;
   }
 
-  // 既存管理者がいる → /api/admin/me が通るか？ (Cookie 持ってれば通る)
+  // 既にセッションがあれば何もしない
   const meRes = await page.request.get('/api/admin/me');
-  if (meRes.ok()) return null;
+  if (meRes.ok()) return;
 
-  // 通らない (= 管理者セッション無し) → テスト DB を使いまわしている想定で、
-  // 新しい管理者を招待経由で作成する必要があるが、招待には既ログイン admin が必要。
-  // ここは dev DB の前提なので、空なら init でいいし、既にいればこのテストはスキップする。
-  test.skip(true, '既存管理者がいるが、管理者セッションを自動で作る手段がない');
-  return null;
+  // 既存 E2E 管理者でログイン
+  const r = await page.request.post('/api/admin/auth/login', {
+    data: { email: E2E_ADMIN.email, password: E2E_ADMIN.password },
+  });
+  if (!r.ok()) {
+    test.skip(true, `既存管理者がいるが E2E 用クレデンシャルで login できない (${r.status()})`);
+  }
 }
 
 test.describe('管理者ページのパルスサーベイ管理', () => {
@@ -37,6 +35,8 @@ test.describe('管理者ページのパルスサーベイ管理', () => {
     const adminCtx: BrowserContext = await browser.newContext();
     const adminPage = await adminCtx.newPage();
     await ensureAdminLogin(adminPage);
+    // パルスサーベイ機能を ON にする (デフォルト OFF)
+    await adminPage.request.put('/api/admin/features/pulse', { data: { enabled: true } });
 
     await adminPage.goto('/admin-setting');
     await expect(adminPage.locator('h2', { hasText: '管理者ページ' })).toBeVisible();
@@ -103,7 +103,14 @@ test.describe('管理者ページのパルスサーベイ管理', () => {
     await userCtx.close();
   });
 
-  test('ユーザーのパルスサーベイ画面に管理者向け UI がないこと', async ({ page }) => {
+  test('ユーザーのパルスサーベイ画面に管理者向け UI がないこと', async ({ browser, page }) => {
+    // 機能 ON にしておく (別コンテキストで管理者セッション)
+    const adminCtx = await browser.newContext();
+    const ap = await adminCtx.newPage();
+    await ensureAdminLogin(ap);
+    await ap.request.put('/api/admin/features/pulse', { data: { enabled: true } });
+    await adminCtx.close();
+
     const s = stamp();
     const creds = { email: `pulseplain-${s}@example.test`, password: `pw-${s}`, name: `Plain-${s}` };
     await page.goto('/register');

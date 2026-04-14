@@ -6,6 +6,7 @@ import { prisma } from './db';
 import { loadAdmin, requireAdmin } from './admin-auth';
 import { hashPassword } from './password';
 import { createAdminSession, ADMIN_SESSION_COOKIE } from './admin-session';
+import { FEATURE_KEYS, getAllFeatures, setFeature, type FeatureKey } from './feature-flags';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 日
 
@@ -277,6 +278,25 @@ adminRoutes.post('/pulse/surveys/affiliations/:affiliationId', requireAdmin, asy
     data: { affiliationId, periodLabel, closesAt },
   });
   return c.json({ id: survey.id, periodLabel: survey.periodLabel }, 201);
+});
+
+// ============================================================
+// 機能フラグ
+// ============================================================
+
+adminRoutes.get('/features', requireAdmin, async (c) => {
+  const features = await getAllFeatures();
+  return c.json(features);
+});
+
+adminRoutes.put('/features/:key', requireAdmin, async (c) => {
+  const key = c.req.param('key') as FeatureKey;
+  if (!(FEATURE_KEYS as readonly string[]).includes(key)) {
+    return c.json({ error: 'unknown feature key' }, 400);
+  }
+  const { enabled } = await c.req.json<{ enabled: boolean }>();
+  await setFeature(key, !!enabled);
+  return c.json({ ok: true });
 });
 
 // ---- サーベイクローズ ----

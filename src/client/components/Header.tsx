@@ -5,9 +5,11 @@ import { useMe, setMe } from '../useMe';
 import { useTheme } from '../useTheme';
 import { api } from '../api';
 import { NotificationBell } from './NotificationBell';
+import { useFeatures } from '../useFeatures';
 
 export function Header() {
   const me = useMe();
+  const features = useFeatures();
   const nav = useNavigate();
   const { pathname } = useLocation();
   const isAdminPage = pathname.startsWith('/admin');
@@ -64,12 +66,12 @@ export function Header() {
             🌐 Communities
           </NavLink>
         )}
-        {me && (
+        {me && features.chat && (
           <NavLink to="/chat" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
             💬 Chat
           </NavLink>
         )}
-        {me && (
+        {me && features.pulse && (
           <NavLink to="/pulse" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>
             📊 Pulse
           </NavLink>

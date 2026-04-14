@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { registerAndLogin } from '../helpers';
+import { registerAndLogin, enableFeatureForTest } from '../helpers';
 
 const SCREENSHOT_DIR = 'screenshots/chat-mention';
 
@@ -36,6 +36,13 @@ async function setupChatRoom(
 }
 
 test.describe('チャット @メンション機能', () => {
+  test.beforeAll(async ({ browser }) => {
+    const ctx = await browser.newContext();
+    const p = await ctx.newPage();
+    await enableFeatureForTest(p, 'chat');
+    await ctx.close();
+  });
+
   test('@ 入力でメンションピッカーが表示される', async ({ page }) => {
     const { name } = await registerAndLogin(page, 'mention-pick');
 

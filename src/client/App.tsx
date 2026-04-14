@@ -28,6 +28,14 @@ import { ChatRoomsPage } from './pages/ChatRoomsPage';
 import { ChatRoomPage } from './pages/ChatRoomPage';
 import { ChatRoomSettingsPage } from './pages/ChatRoomSettingsPage';
 import { PulseSurveyPage } from './pages/PulseSurveyPage';
+import { useFeatures } from './useFeatures';
+import { Navigate } from 'react-router-dom';
+
+function RequireFeature({ feature, children }: { feature: 'chat' | 'pulse'; children: React.ReactNode }) {
+  const f = useFeatures();
+  if (!f[feature]) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
 
 export function App() {
   return (
@@ -89,7 +97,7 @@ export function App() {
           path="/chat"
           element={
             <RequireAuth>
-              <ChatRoomsPage />
+              <RequireFeature feature="chat"><ChatRoomsPage /></RequireFeature>
             </RequireAuth>
           }
         />
@@ -97,7 +105,7 @@ export function App() {
           path="/chat/:id"
           element={
             <RequireAuth>
-              <ChatRoomPage />
+              <RequireFeature feature="chat"><ChatRoomPage /></RequireFeature>
             </RequireAuth>
           }
         />
@@ -105,7 +113,7 @@ export function App() {
           path="/chat/:id/settings"
           element={
             <RequireAuth>
-              <ChatRoomSettingsPage />
+              <RequireFeature feature="chat"><ChatRoomSettingsPage /></RequireFeature>
             </RequireAuth>
           }
         />
@@ -115,7 +123,7 @@ export function App() {
           path="/pulse"
           element={
             <RequireAuth>
-              <PulseSurveyPage />
+              <RequireFeature feature="pulse"><PulseSurveyPage /></RequireFeature>
             </RequireAuth>
           }
         />

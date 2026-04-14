@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import type { Affiliation } from '../types';
 import { Avatar } from '../components/Avatar';
+import { invalidateFeatures, fetchFeatures } from '../useFeatures';
 
 type AdminUser = { id: string; email: string; name: string; createdAt: string };
 
@@ -115,7 +116,7 @@ function AdminInitForm({ onCreated }: { onCreated: () => void }) {
 
 // ---------- ダッシュボード ----------
 
-type Tab = 'users' | 'admins' | 'affiliations' | 'pulse';
+type Tab = 'users' | 'admins' | 'affiliations' | 'pulse' | 'features';
 
 function AdminDashboard({ admin }: { admin: AdminUser }) {
   const [tab, setTab] = useState<Tab>('users');
@@ -139,11 +140,13 @@ function AdminDashboard({ admin }: { admin: AdminUser }) {
         <button className={tab === 'admins' ? 'active' : ''} onClick={() => setTab('admins')}>管理者</button>
         <button className={tab === 'affiliations' ? 'active' : ''} onClick={() => setTab('affiliations')}>所属マスタ</button>
         <button className={tab === 'pulse' ? 'active' : ''} onClick={() => setTab('pulse')}>パルスサーベイ</button>
+        <button className={tab === 'features' ? 'active' : ''} onClick={() => setTab('features')}>機能設定</button>
       </div>
       {tab === 'users' && <AdminUsersSection />}
       {tab === 'admins' && <AdminAdminsSection />}
       {tab === 'affiliations' && <AdminAffiliationsSection />}
       {tab === 'pulse' && <AdminPulseSection />}
+      {tab === 'features' && <AdminFeaturesSection />}
     </div>
   );
 }
@@ -693,5 +696,97 @@ function AdminPulseSection() {
         )}
       </div>
     </>
+  );
+}
+
+// ---------- 機能設定 (ON/OFF) ----------
+
+type FeatureState = { chat: boolean; pulse: boolean };
+
+function AdminFeaturesSection() {
+  const [features, setFeatures] = useState<FeatureState | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.adminGetFeatures().then(setFeatures).catch(() => setFeatures({ chat: false, pulse: false }));
+  }, []);
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(null), 2500);
+    return () => clearTimeout(t);
+  }, [msg]);
+
+  const toggle = async (key: 'chat' | 'pulse') => {
+    if (!features || busy) return;
+    const next = !features[key];
+    setBusy(true);
+    try {
+      await api.adminSetFeature(key, next);
+      setFeatures({ ...features, [key]: next });
+      invalidateFeatures();
+      fetchFeatures();
+      setMsg(`${labelOf(key)}を${next ? 'ON' : 'OFF'}にしました`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : '切替に失敗しました');
+    } finally { setBusy(false); }
+  };
+
+  if (!features) return <div className="loading">読み込み中…</div>;
+
+  return (
+    <div className="card">
+      {msg && <div className="toast" role="status">{msg}</div>}
+      <h3 style={{ marginTop: 0 }}>機能の有効化</h3>
+      <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 0 }}>
+        任意機能を必要に応じて ON/OFF にできます。OFF にするとヘッダーリンクと関連 API が無効化されます (既存データは削除されません)。
+      </p>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        <FeatureRow
+          name="チャット"
+          desc="リアルタイムチャット (💬 Chat)"
+          enabled={features.chat}
+          busy={busy}
+          onToggle={() => toggle('chat')}
+        />
+        <FeatureRow
+          name="パルスサーベイ"
+          desc="週次エンゲージメント調査 (📊 Pulse)"
+          enabled={features.pulse}
+          busy={busy}
+          onToggle={() => toggle('pulse')}
+        />
+      </ul>
+    </div>
+  );
+}
+
+function labelOf(k: 'chat' | 'pulse') {
+  return k === 'chat' ? 'チャット' : 'パルスサーベイ';
+}
+
+function FeatureRow({ name, desc, enabled, busy, onToggle }: {
+  name: string; desc: string; enabled: boolean; busy: boolean; onToggle: () => void;
+}) {
+  return (
+    <li style={{
+      display: 'flex', gap: 12, padding: '12px 0',
+      borderBottom: '1px solid var(--border)', alignItems: 'center',
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600 }}>{name}</div>
+        <div style={{ color: 'var(--muted)', fontSize: 13 }}>{desc}</div>
+      </div>
+      <span style={{
+        fontSize: 12, padding: '2px 8px', borderRadius: 999,
+        background: enabled ? 'rgba(34,197,94,0.15)' : 'rgba(107,114,128,0.15)',
+        color: enabled ? '#16a34a' : 'var(--muted)',
+      }}>
+        {enabled ? 'ON' : 'OFF'}
+      </span>
+      <button className="btn" onClick={onToggle} disabled={busy}>
+        {enabled ? '無効化' : '有効化'}
+      </button>
+    </li>
   );
 }
